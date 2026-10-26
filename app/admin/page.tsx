@@ -77,7 +77,7 @@ async function optimizeImage(file: File): Promise<string> {
 }
 
 const ALLOWED = ["maxjjc123@gmail.com", "bmallen@gmx.com"];
-const STORE = "the-list-admin-test-hotels-v1";
+const STORE = "the-list-admin-test-hotels-v2";
 const panel: CSSProperties = { background: "#202020", border: "1px solid #383838", borderRadius: 12, padding: 22 };
 const field: CSSProperties = { width: "100%", boxSizing: "border-box", background: "#141414", border: "1px solid #494949", borderRadius: 5, color: "#fff", padding: "12px", fontSize: 14 };
 const button: CSSProperties = { padding: "12px 16px", background: "#e7e0d5", color: "#171717", border: 0, borderRadius: 5, cursor: "pointer", fontSize: 12, letterSpacing: ".08em" };
@@ -160,12 +160,10 @@ export default function AdminPage() {
   async function saveShared() {
     if (sharedBusy) return;
     if (!window.confirm("Save the hotels currently shown here for both administrators? This replaces the current shared hotel list.")) return;
-    const writeKey = window.prompt("Enter your admin write key (ADMIN_WRITE_KEY):");
-    if (!writeKey) return;
     setSharedBusy(true);
     try {
       const response = await fetch("/api/shared-hotels", {
-        method: "PUT", headers: { "Content-Type": "application/json", "x-admin-write-key": writeKey },
+        method: "PUT", headers: { "Content-Type": "application/json", "x-admin-write-key": window.prompt("Enter your V2 admin write key to save:") || "" },
         body: JSON.stringify({ hotels, sha: sharedSha }),
       });
       const data = await response.json();

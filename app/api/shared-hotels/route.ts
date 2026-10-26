@@ -5,9 +5,9 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const OWNER = "TheList-2026";
-const REPO = "The-List";
-const BRANCH = "hotel-data";
-const FILE = "shared-hotels.json";
+const REPO = "The-List-V2";
+const BRANCH = "main";
+const FILE = "data/shared-hotels.json";
 const api = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE}?ref=${BRANCH}`;
 
 const headers = () => ({

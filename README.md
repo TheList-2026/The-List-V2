@@ -1,22 +1,20 @@
-# THE LIST — Luxury V2 comparison site
+# THE LIST — V2 cinematic rebuild
 
-Standalone Next.js 15 project. The V2 editorial presentation, actual Marbella spreadsheet data and artwork, and V1 admin functionality are combined.
+This project preserves the original V0 visual language: Cormorant/Manrope, champagne/ivory/ink, full-screen scroll snapping, 6-second photo motion, animated copy and glass action bar. The homepage is a V0-style intro with the original V1-inspired three-field Work With Us modal. The hotel demo uses the uploaded Marbella artwork and seed business details. The Admin is adapted from the original V1 admin.
 
-## Setup
-1. Create a **new** GitHub repository (e.g. `The-List-V2`) and upload the **contents** of this folder. Do not overwrite the original website.
-2. Import that repository as a **new** Vercel project (framework Next.js).
-3. Visit `/hotel/puente-romano-marbella` for the Marbella guide; `/admin` for CSV, bulk artwork, preview, and shared-data tools; `/work-with-us` for the enquiry form.
-4. For persistent cross-device admin edits, set `GITHUB_HOTELS_TOKEN` and a strong `ADMIN_WRITE_KEY` on Vercel with permission to read/write `TheList-2026/The-List` branch `hotel-data` and file `shared-hotels.json`. **WARNING:** This configuration would share live hotel data with the first website. To keep the comparison isolated, configure a separate data repository and edit OWNER/REPO/BRANCH in `app/api/shared-hotels/route.ts` before enabling the token.
-5. Without the token, the API serves the bundled Marbella demo. Admin edits are kept in browser storage, but **SAVE TO SHARED** is unavailable.
+## Deploy (separate V2 only)
 
-## Artwork rules
-Admin image upload accepts JPG, PNG or WebP up to 5MB and automatically outputs **exactly 1080 × 1920 JPEG**, preserving source proportions using a blurred fill behind non-9:16 images. The bundled Marbella images are original supplied WebP assets, and are not altered. Re-upload through Admin to standardize them.
+1. Upload the **contents** of this folder into `TheList-2026/The-List-V2`, preserving directories. Do not replace the original `The-List` repository.
+2. Import `The-List-V2` into a **new** Vercel project. Framework: Next.js, root: `./`.
+3. `npm install && npm run build` to test locally.
+4. Open `/` for the homepage, `/hotel/puente-romano-marbella` for the demo, `/admin` for management.
 
-## Spreadsheet / CSV
-The supplied `The_List_5500.xlsx` was used to seed 11 real listings and their metadata. Admin's CSV import expects columns `Business Name,Category,Phone,Booking URL,Directions URL,Artwork Filename,Artwork Has Name`. `marbella-admin-import.csv` is provided for convenience. Matching filenames can be bulk-uploaded via Admin.
+## IMPORTANT: admin / live storage
 
-## Important launch notes
-- `/admin` still uses the **original client-side email allowlist** for viewing. Shared-data PUT now additionally requires the `ADMIN_WRITE_KEY` secret, entered when saving. For production, replace this with proper server-side sign-in and rate limiting.
-- The enquiry form is a **mailto demo**, with placeholder `partnerships@thelist.example`; replace with a real mailbox or server form before launch.
-- The artwork is owned/provided by the project owner; check usage rights before publishing publicly.
-- No modifications are made to the original repository or Vercel project by this ZIP.
+Without environment variables, the demo loads `data/seed-hotels.json`. Admin can manage drafts locally and import CSV/images, but online saving needs **both** `GITHUB_HOTELS_TOKEN` (a fine-grained GitHub token with contents write access **only to the V2 repo**) and `ADMIN_WRITE_KEY` (a private, long random password). The V2 API targets `TheList-2026/The-List-V2`, branch `main`, file `data/shared-hotels.json` and will **not** write to V1. Set these environment variables in the **V2** Vercel project only. To save, enter the ADMIN_WRITE_KEY when prompted. Admin's legacy email allow-list is only a convenience UI, **not authentication**; keep the Admin private and add real server-side access control before external use.
+
+`NEXT_PUBLIC_ENQUIRY_EMAIL`: set to your actual enquiries inbox. Until set, the modal opens a mail draft addressed to `hello@example.com` (placeholder), not a working backend. This is a mailto form and cannot guarantee delivery.
+
+The Admin enforces 5MB JPG/PNG/WebP inputs and outputs exact 1080×1920 JPEG with non-distorting blur-fill. The original supplied Marbella images are preserved; new admin uploads are processed automatically. V2 live image data is stored as base64 in shared JSON; the 18MB pilot limit still applies.
+
+The public guest page reads V2 shared data directly on the server. The V0 design is kept for the demo. Artwork names and business details are from the supplied files; descriptions in the seed are from the earlier project.
