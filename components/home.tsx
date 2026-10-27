@@ -12,6 +12,9 @@ export function Home() {
     window.dispatchEvent(new Event('thelist:enquire'))
   }
 
+  const buttonStyle =
+    'pointer-events-auto flex h-12 w-[220px] items-center justify-center rounded-full border border-champagne/35 bg-ink/60 px-4 text-center text-[10px] font-medium uppercase tracking-[.22em] text-champagne shadow-lg backdrop-blur-md transition-colors hover:border-champagne/70 hover:bg-ink/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-champagne'
+
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-ink">
       <div className="relative mx-auto h-dvh w-full sm:max-w-[calc(100dvh*9/16)]">
@@ -72,42 +75,42 @@ export function Home() {
             >
               {intro.tagline}
             </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1, delay: 1.4 }}
-              className="mt-12"
-            >
-              <Link
-                href="/demos"
-                className="glass-soft inline-flex items-center justify-center rounded-full px-6 py-3 text-[10px] uppercase tracking-[.27em] text-ivory"
-              >
-                Explore our demos
-              </Link>
-            </motion.div>
           </div>
         </SlideShell>
 
-        {/* Always visible on mobile and desktop */}
+        {/* Matching homepage buttons */}
         <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex justify-center px-4"
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex flex-col items-center gap-3 px-4"
           style={{
             paddingBottom:
               'calc(env(safe-area-inset-bottom, 0px) + 24px)',
           }}
         >
+          <Link
+            href="/demos"
+            className={buttonStyle}
+          >
+            Explore Our Demos
+          </Link>
+
           <button
             type="button"
             onClick={openWorkModal}
-            className="pointer-events-auto rounded-full border border-champagne/35 bg-ink/60 px-6 py-3 text-[10px] font-medium uppercase tracking-[.25em] text-champagne shadow-lg backdrop-blur-md transition-colors hover:border-champagne/70 hover:bg-ink/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-champagne"
+            className={buttonStyle}
           >
-            Work with us
+            Work With Us
           </button>
         </div>
       </div>
 
-      <Link href="/admin" className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] left-4 z-40 text-[9px] uppercase tracking-[.18em] text-ivory/35 transition-colors hover:text-champagne/80">Admin</Link>
+      {/* Temporary discreet Admin access */}
+      <Link
+        href="/admin"
+        className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] left-4 z-40 text-[9px] uppercase tracking-[.18em] text-ivory/35 transition-colors hover:text-champagne/80"
+      >
+        Admin
+      </Link>
+
       <WorkModal />
     </main>
   )
