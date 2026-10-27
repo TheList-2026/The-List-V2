@@ -1,7 +1,109 @@
+
 'use client'
-import {motion} from 'framer-motion'
-import {ArrowUp} from 'lucide-react'
-import {outro} from '@/lib/places'
-import {SlideShell} from './slide-shell'
-const ease=[.22,1,.36,1] as const
-export function OutroSlide({isActive,isRewinding,onBackToTop}:{isActive:boolean;isRewinding:boolean;onBackToTop:()=>void}){return <SlideShell image={outro.image} alt="Lounge chairs overlooking the sunset" isActive={isActive} label="Enjoy your stay" centered><div className="flex flex-1 flex-col items-center justify-center px-8 text-center"><motion.p initial={false} animate={isActive?{opacity:1,y:0}:{opacity:0,y:12}} transition={{duration:1,delay:.2,ease}} className="text-[10px] font-medium uppercase tracking-[0.42em] text-champagne">{outro.eyebrow}</motion.p><motion.h2 initial={false} animate={isActive?{opacity:1,y:0,filter:'blur(0px)'}:{opacity:0,y:24,filter:'blur(8px)'}} transition={{duration:1.2,delay:.35,ease}} className="mt-6 text-balance font-serif text-6xl font-light italic leading-[0.95] text-ivory">{outro.title}</motion.h2><motion.span aria-hidden="true" className="mt-8 block h-px w-16 bg-champagne/70" initial={{scaleX:0}} animate={{scaleX:isActive?1:0}} transition={{duration:1.2,delay:.7,ease}}/><motion.p initial={false} animate={isActive?{opacity:1,y:0}:{opacity:0,y:12}} transition={{duration:1,delay:.85,ease}} className="mt-8 max-w-[30ch] text-pretty text-[15px] font-medium leading-relaxed text-ivory [text-shadow:0_1px_2px_rgb(0_0_0/.55),0_4px_24px_rgb(0_0_0/.45)]">{outro.tagline}</motion.p></div><motion.div initial={false} animate={isActive?{opacity:1,y:0}:{opacity:0,y:16}} transition={{duration:.9,delay:1.1,ease}} className="flex justify-center px-6 pb-[max(2.5rem,env(safe-area-inset-bottom))]"><motion.button type="button" onClick={onBackToTop} disabled={isRewinding} whileHover="hover" whileTap={{scale:.96}} className="glass-soft group flex h-14 items-center gap-4 overflow-hidden rounded-full pl-2 pr-7 text-ivory transition-colors duration-300 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-champagne disabled:opacity-60"><span className="relative flex size-10 items-center justify-center overflow-hidden rounded-full bg-champagne text-ink"><motion.span className="absolute" variants={{hover:{y:-28}}} transition={{duration:.4,ease}}><ArrowUp className="size-4 stroke-[1.75]"/></motion.span><motion.span className="absolute" initial={{y:28}} variants={{hover:{y:0}}} transition={{duration:.4,ease}}><ArrowUp className="size-4 stroke-[1.75]"/></motion.span></span><span className="text-[11px] font-medium uppercase tracking-[0.3em]">Back to top</span></motion.button></motion.div></SlideShell>}
+
+import { motion } from 'framer-motion'
+import { ArrowUp } from 'lucide-react'
+import { outro } from '@/lib/places'
+import { SlideShell } from './slide-shell'
+
+const ease = [.22, 1, .36, 1] as const
+
+export function OutroSlide({
+  isActive,
+  isRewinding,
+  onBackToTop,
+}: {
+  isActive: boolean
+  isRewinding: boolean
+  onBackToTop: () => void
+}) {
+  return (
+    <SlideShell
+      image={outro.image}
+      alt="Elegant hotel stationery"
+      isActive={isActive}
+      label="Enjoy your stay"
+      centered
+    >
+      <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
+        <motion.h2
+          initial={false}
+          animate={
+            isActive
+              ? { opacity: 1, y: 0, filter: 'blur(0px)' }
+              : { opacity: 0, y: 24, filter: 'blur(8px)' }
+          }
+          transition={{ duration: 1.2, delay: 0.35, ease }}
+          className="text-balance font-serif text-6xl font-light italic leading-[0.95] text-ivory"
+        >
+          Enjoy your stay
+        </motion.h2>
+
+        <motion.span
+          aria-hidden="true"
+          className="mt-8 block h-px w-16 bg-champagne/70"
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: isActive ? 1 : 0 }}
+          transition={{ duration: 1.2, delay: 0.7, ease }}
+        />
+
+        <motion.p
+          initial={false}
+          animate={
+            isActive
+              ? { opacity: 1, y: 0 }
+              : { opacity: 0, y: 12 }
+          }
+          transition={{ duration: 1, delay: 0.85, ease }}
+          className="mt-8 max-w-[30ch] text-pretty text-[15px] font-medium leading-relaxed text-ivory [text-shadow:0_1px_2px_rgb(0_0_0/.55),0_4px_24px_rgb(0_0_0/.45)]"
+        >
+          Every place on this list was chosen with care. We hope they become
+          part of your story.
+        </motion.p>
+      </div>
+
+      <motion.div
+        initial={false}
+        animate={
+          isActive
+            ? { opacity: 1, y: 0 }
+            : { opacity: 0, y: 16 }
+        }
+        transition={{ duration: 0.9, delay: 1.1, ease }}
+        className="flex justify-center px-6 pb-[max(2.5rem,env(safe-area-inset-bottom))]"
+      >
+        <motion.button
+          type="button"
+          onClick={onBackToTop}
+          disabled={isRewinding}
+          whileHover="hover"
+          whileTap={{ scale: 0.96 }}
+          className="glass-soft group flex h-14 items-center gap-4 overflow-hidden rounded-full pl-2 pr-7 text-ivory transition-colors duration-300 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-champagne disabled:opacity-60"
+        >
+          <span className="relative flex size-10 items-center justify-center overflow-hidden rounded-full bg-champagne text-ink">
+            <motion.span
+              className="absolute"
+              variants={{ hover: { y: -28 } }}
+              transition={{ duration: 0.4, ease }}
+            >
+              <ArrowUp className="size-4 stroke-[1.75]" />
+            </motion.span>
+
+            <motion.span
+              className="absolute"
+              initial={{ y: 28 }}
+              variants={{ hover: { y: 0 } }}
+              transition={{ duration: 0.4, ease }}
+            >
+              <ArrowUp className="size-4 stroke-[1.75]" />
+            </motion.span>
+          </span>
+
+          <span className="text-[11px] font-medium uppercase tracking-[0.3em]">
+            Back to top
+          </span>
+        </motion.button>
+      </motion.div>
+    </SlideShell>
+  )
+}
