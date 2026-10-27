@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ChangeEvent, type CSSProperties } from "react";
 import Link from "next/link";
+import JSZip from "jszip";
 
 type Category = "DINING" | "SHOPPING" | "EXPERIENCES";
 type Listing = {
@@ -76,7 +77,7 @@ async function optimizeImage(file: File): Promise<string> {
   });
 }
 
-const ALLOWED = ["maxjjc123@gmail.com", "bmallen@gmx.com"];
+
 const STORE = "the-list-admin-test-hotels-v2";
 const panel: CSSProperties = { background: "#202020", border: "1px solid #383838", borderRadius: 12, padding: 22 };
 const field: CSSProperties = { width: "100%", boxSizing: "border-box", background: "#141414", border: "1px solid #494949", borderRadius: 5, color: "#fff", padding: "12px", fontSize: 14 };
@@ -89,6 +90,9 @@ function validUrl(value: string) { if (!value.trim()) return true; try { const u
 
 export default function AdminPage() {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [activity, setActivity] = useState<{author:string; date:string; message:string}[]>([]);
+  const [artworkWarnings, setArtworkWarnings] = useState<string[]>([]);
   const [approved, setApproved] = useState(false);
   const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
@@ -123,6 +127,7 @@ export default function AdminPage() {
         if (Array.isArray(parsed)) setHotels(parsed as Hotel[]);
       }
     } catch { /* Browser storage may be unavailable */ }
+    fetch("/api/admin/session", {cache:"no-store"}).then(r=>r.json()).then(d=>{if(d.authenticated) setApproved(true)}).catch(()=>{});
     setReady(true);
   }, []);
   useEffect(() => {
@@ -132,10 +137,57 @@ export default function AdminPage() {
   }, [hotels, ready]);
 
   const active = hotels.find(h => h.id === activeId);
-  function login(event: React.FormEvent<HTMLFormElement>) {
+  async function login(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (ALLOWED.includes(email.trim().toLowerCase())) { setApproved(true); setError(""); }
-    else setError("This email is not on the test access list.");
+    try {
+      const r = await fetch("/api/admin/session", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})});
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || "Unable to sign in.");
+      setApproved(true); setPassword(""); setError("");
+      await refreshActivity();
+    } catch(e) {setError(e instanceof Error ? e.message : "Login failed.");}
+  }
+  async function signOut() {
+    await fetch("/api/admin/session", {method:"DELETE"});
+    setApproved(false); setActiveId(null); setPreview(false);
+  }
+  async function refreshActivity() {
+    try {
+      const r = await fetch("/api/admin/activity",{cache:"no-store"});
+      if(r.ok) { const d = await r.json(); setActivity(d.activity || []); }
+    } catch { /* history temporarily unavailable */ }
+  }
+  async function uploadZip(event: ChangeEvent<HTMLInputElement>) {
+    const file=event.target.files?.[0]; if(!file) return;
+    setArtworkWarnings([]);
+    if(file.size > 35*1024*1024){setArtworkWarnings(["ZIP exceeds 35 MB. Split the artwork into smaller ZIP files."]);return;}
+    try {
+      const zip=await JSZip.loadAsync(file);
+      const entries=Object.values(zip.files).filter(f=>!f.dir && !f.name.startsWith("__MACOSX/") && !f.name.split("/").pop()?.startsWith("."));
+      if(entries.length>100) throw new Error("Maximum 100 images per ZIP.");
+      const accepted:File[]=[]; const warnings:string[]=[];
+      for(const entry of entries){
+        const filename=entry.name.split("/").pop() || "";
+        const ext=filename.split(".").pop()?.toLowerCase();
+        const mime=ext==="jpg"||ext==="jpeg"?"image/jpeg":ext==="png"?"image/png":ext==="webp"?"image/webp":"";
+        if(!mime){warnings.push(`${filename}: unsupported format; use JPG, PNG or WebP.`);continue;}
+        const bytes=await entry.async("uint8array");
+        if(bytes.byteLength>5*1024*1024){warnings.push(`${filename}: over 5 MB; skipped.`);continue;}
+        const imageFile=new File([bytes],filename,{type:mime});
+        const url=URL.createObjectURL(imageFile);
+        try {
+          const dimensions=await new Promise<{width:number;height:number}>((resolve,reject)=>{
+            const image=new Image(); image.onload=()=>resolve({width:image.naturalWidth,height:image.naturalHeight}); image.onerror=()=>reject(new Error("Unreadable image")); image.src=url;
+          });
+          if(dimensions.width!==1080||dimensions.height!==1920) warnings.push(`${filename}: ${dimensions.width} × ${dimensions.height} (required 1080 × 1920). Will convert without stretching when CSV is applied.`);
+          accepted.push(imageFile);
+        }catch{warnings.push(`${filename}: invalid or unreadable image; skipped.`)}finally{URL.revokeObjectURL(url)}
+      }
+      const names=new Set<string>();
+      for(const f of accepted){const key=fileKey(f.name);if(names.has(key))warnings.push(`${f.name}: duplicate filename in ZIP.`);names.add(key)}
+      setImportFiles(accepted); setArtworkWarnings(warnings);
+      setNotice(`${accepted.length} image(s) loaded from ZIP. ${warnings.length} warning(s). Review before applying CSV.`);
+    }catch(e){setArtworkWarnings([e instanceof Error?e.message:"Unable to open ZIP."]);setImportFiles([])}
   }
   async function loadShared() {
     if (sharedBusy) return;
@@ -153,6 +205,7 @@ export default function AdminPage() {
       setSharedSha(data.sha || null);
       setSharedLoaded(true);
       setNotice(`Loaded ${remote.length} hotel(s) from shared storage.`);
+      await refreshActivity();
     } catch (e) { setNotice(e instanceof Error ? e.message : "Shared load failed."); }
     finally { setSharedBusy(false); }
   }
@@ -163,7 +216,7 @@ export default function AdminPage() {
     setSharedBusy(true);
     try {
       const response = await fetch("/api/shared-hotels", {
-        method: "PUT", headers: { "Content-Type": "application/json", "x-admin-write-key": window.prompt("Enter your V2 admin write key to save:") || "" },
+        method: "PUT", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ hotels, sha: sharedSha }),
       });
       const data = await response.json();
@@ -171,6 +224,7 @@ export default function AdminPage() {
       setSharedSha(data.sha);
       setSharedLoaded(true);
       setNotice("Saved online. Your partner can click LOAD SHARED HOTELS to see the changes.");
+      await refreshActivity();
     } catch (e) { setNotice(e instanceof Error ? e.message : "Shared save failed."); }
     finally { setSharedBusy(false); }
   }
@@ -280,14 +334,14 @@ export default function AdminPage() {
     <main style={{ minHeight: "100vh", width: "100%", maxWidth: "100%", minWidth: 0, overflowX: "clip", background: "#151515", color: "#f5f1eb", padding: "32px 18px 80px", fontFamily: "Arial, Helvetica, sans-serif" }}>
       <div style={{ width: "100%", maxWidth: 1100, minWidth: 0, margin: "0 auto" }}>
         <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap", borderBottom: "1px solid #373737", paddingBottom: 22, marginBottom: 28 }}>
-          <div><div style={{ fontFamily: "Georgia, serif", fontSize: 30, letterSpacing: ".22em" }}>THE LIST</div><div style={{ color: "#aaa", fontSize: 10, letterSpacing: ".2em", marginTop: 9 }}>HOTEL MANAGEMENT · VERSION 1 TEST</div></div>
-          {approved && <button type="button" style={secondary} onClick={() => { setApproved(false); setActiveId(null); setPreview(false); }}>SIGN OUT</button>}
+          <div><div style={{ fontFamily: "Georgia, serif", fontSize: 30, letterSpacing: ".22em" }}>THE LIST</div><div style={{ color: "#aaa", fontSize: 10, letterSpacing: ".2em", marginTop: 9 }}>HOTEL MANAGEMENT · SHARED WORKSPACE</div></div>
+          {approved && <button type="button" style={secondary} onClick={signOut}>SIGN OUT</button>}
         </header>
         {!approved ? (
           <section style={{ ...panel, maxWidth: 420, margin: "70px auto" }}>
             <h1 style={{ fontFamily: "Georgia, serif", fontWeight: 400, fontSize: 29 }}>Welcome back.</h1>
-            <p style={{ color: "#aaa", fontSize: 13, lineHeight: 1.7 }}>Test access only. Email entry does not verify identity.</p>
-            <form onSubmit={login}><label style={label} htmlFor="admin-email">APPROVED EMAIL</label><input id="admin-email" type="email" required style={{ ...field, marginBottom: 16 }} value={email} onChange={e => setEmail(e.target.value)} placeholder="Email address" />{error && <p style={{ color: "#eaa", fontSize: 13 }}>{error}</p>}<button type="submit" style={{ ...button, width: "100%" }}>ENTER DASHBOARD →</button></form>
+            <p style={{ color: "#aaa", fontSize: 13, lineHeight: 1.7 }}>Private management for authorised partners. Sign in with your own credentials.</p>
+            <form onSubmit={login}><label style={label} htmlFor="admin-email">EMAIL</label><input id="admin-email" type="email" required style={{ ...field, marginBottom: 16 }} value={email} onChange={e => setEmail(e.target.value)} placeholder="Email address" /><label style={label}>PASSWORD</label><input type="password" required autoComplete="current-password" style={{ ...field, marginBottom: 16 }} value={password} onChange={e => setPassword(e.target.value)} />{error && <p style={{ color: "#eaa", fontSize: 13 }}>{error}</p>}<button type="submit" style={{ ...button, width: "100%" }}>ENTER DASHBOARD →</button></form>
           </section>
         ) : (
           <>
@@ -300,6 +354,7 @@ export default function AdminPage() {
                 <button type="button" disabled={sharedBusy || !ready} style={button} onClick={saveShared}>{sharedBusy ? "WORKING…" : "SAVE TO SHARED"}</button>
               </div>
             </section>
+            <section style={{...panel,marginBottom:20}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}><h2 style={{fontSize:17,margin:0}}>Recent shared activity</h2><button type="button" style={secondary} onClick={refreshActivity}>REFRESH</button></div><p style={{color:"#aaa",fontSize:12}}>Changes published by either partner appear here. Unsaved local edits are not shared.</p>{activity.length ? activity.map((a,i)=><p key={i} style={{fontSize:12,borderTop:"1px solid #393939",paddingTop:9}}><strong>{a.author}</strong> · {new Date(a.date).toLocaleString()}<br/><span style={{color:"#aaa"}}>{a.message}</span></p>) : <p style={{color:"#aaa",fontSize:12}}>No activity loaded yet.</p>}</section>
             <p style={{ color: "#aaa", fontSize: 13, lineHeight: 1.7, marginBottom: 24 }}>Create and preview hotels here. Changes stay on this device until you click SAVE TO SHARED. The shared workspace is separate from publishing guest pages.</p>
             {notice && <p role="status" style={{ background: "#302b25", border: "1px solid #625342", padding: 13, borderRadius: 5, color: "#f0e2ce" }}>{notice}</p>}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 330px), 1fr))", gap: 20, alignItems: "start", minWidth: 0, maxWidth: "100%" }}>
@@ -332,8 +387,11 @@ export default function AdminPage() {
                       <label style={label}>1. SELECT CSV</label>
                       <input type="file" accept=".csv,text/csv" onChange={readImportCSV} style={{ ...field, marginBottom: 16 }} />
                       {importRows && importHotelId === active.id && <>
-                        <label style={label}>2. UPLOAD ARTWORK (SELECT MULTIPLE)</label>
+                        <label style={label}>2. UPLOAD ARTWORK ZIP (OR SELECT INDIVIDUAL FILES)</label>
+                        <input type="file" accept=".zip,application/zip" onChange={uploadZip} style={{...field,marginBottom:12}} />
+                        <label style={label}>OR SELECT INDIVIDUAL IMAGES</label>
                         <input type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={e => setImportFiles(Array.from(e.target.files || []))} style={{ ...field, marginBottom: 16 }} />
+                        {artworkWarnings.length>0 && <div role="alert" style={{background:"#382c24",border:"1px solid #8d7051",padding:12,marginBottom:14,fontSize:12}}><strong>Artwork validation — {artworkWarnings.length} warning(s)</strong>{artworkWarnings.map((w,i)=><p key={i} style={{margin:"8px 0 0"}}>{w}</p>)}</div>}
                         <p style={{ color: "#bbb", fontSize: 12 }}>{importFiles.length} image(s) selected. Exact filenames match the Artwork Filename CSV column.</p>
                         <h3 style={{ fontSize: 14 }}>3. Review changes</h3>
                         {(() => {

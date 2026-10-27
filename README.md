@@ -18,3 +18,19 @@ Without environment variables, the demo loads `data/seed-hotels.json`. Admin can
 The Admin enforces 5MB JPG/PNG/WebP inputs and outputs exact 1080×1920 JPEG with non-distorting blur-fill. The original supplied Marbella images are preserved; new admin uploads are processed automatically. V2 live image data is stored as base64 in shared JSON; the 18MB pilot limit still applies.
 
 The public guest page reads V2 shared data directly on the server. The V0 design is kept for the demo. Artwork names and business details are from the supplied files; descriptions in the seed are from the earlier project.
+
+
+## Partner Admin (2026 update)
+
+Add the following Vercel environment variables **only to the V2 project**, for Production, Preview and Development as needed:
+
+- `GITHUB_HOTELS_TOKEN` — fine-grained GitHub token scoped to `TheList-2026/The-List-V2`, Contents: Read and write.
+- `ADMIN_SESSION_SECRET` — a unique random secret of at least 32 characters (recommend 64).
+- `ADMIN_1_EMAIL` and `ADMIN_1_PASSWORD` — first administrator credentials.
+- `ADMIN_2_EMAIL` and `ADMIN_2_PASSWORD` — second administrator credentials. Use different strong passwords.
+
+Never use a real token or password in code, a GitHub commit or the chat. Redeploy after adding environment variables. `/admin` uses separate signed, HTTP-only session cookies (12 hours). Public homepage links discreetly to `/admin`; remove that link whenever desired. The GitHub contents API is used for shared data with SHA conflict protection. Recent commits to `data/shared-hotels.json` are displayed in Admin as an audit trail. Reload shared data to see your partner's saved work; this is not real-time collaborative editing.
+
+For a hotel, import CSV first (see `marbella-admin-import.csv`), then upload a ZIP of artwork whose filenames match the CSV's `Artwork Filename` column. The client checks file type, max 5 MB per image, dimensions (1080x1920), ZIP max 35 MB and 100 files, and lists warnings. Accepted images of other dimensions are resized to 1080x1920 using contain + blurred background without stretching when you click Apply CSV. Review before Save to Shared. Shared images are currently stored inline in JSON, capped at 18 MB: for larger hotel collections migrate to dedicated object storage.
+
+Security limitations: login has no persistent rate limiting or password-reset flow; enable Vercel WAF/rate limiting or an identity provider before broad external exposure. Individual account passwords are stored in Vercel environment settings, not in source code. GitHub commits provide a basic publishing log, not a comprehensive record of local drafts or per-field changes.

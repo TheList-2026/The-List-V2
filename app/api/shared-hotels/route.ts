@@ -1,4 +1,5 @@
 import seed from "../../../data/seed-hotels.json";
+import {sessionEmail} from "@/lib/admin-auth";
 import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -64,7 +65,8 @@ export async function GET() {
 }
 
 export async function PUT(req: NextRequest) {
-  if (!process.env.ADMIN_WRITE_KEY || req.headers.get("x-admin-write-key") !== process.env.ADMIN_WRITE_KEY) return NextResponse.json({ error: "Unauthorized. Configure ADMIN_WRITE_KEY in Vercel." }, { status: 401 });
+  const actor=sessionEmail(req);
+  if (!actor) return NextResponse.json({ error: "Sign in to Admin to save shared hotels." }, { status: 401 });
   if (!process.env.GITHUB_HOTELS_TOKEN) {
     return NextResponse.json({ error: "Set GITHUB_HOTELS_TOKEN in Vercel first." }, { status: 503 });
   }
@@ -85,7 +87,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "Shared data exceeds 18 MB. Reduce image sizes or number of postcards." }, { status: 413 });
     }
     const payload: Record<string, unknown> = {
-      message: "Update shared hotel pilot data",
+      message: `Admin update by ${actor}`,
       branch: BRANCH,
       content: Buffer.from(json, "utf8").toString("base64"),
     };
