@@ -173,7 +173,11 @@ export default function AdminPage() {
         if(!mime){warnings.push(`${filename}: unsupported format; use JPG, PNG or WebP.`);continue;}
         const bytes=await entry.async("uint8array");
         if(bytes.byteLength>5*1024*1024){warnings.push(`${filename}: over 5 MB; skipped.`);continue;}
-        const imageFile=new File([bytes],filename,{type:mime});
+        const imageFile = new File(
+  [Uint8Array.from(bytes)],
+  filename,
+  { type: mime }
+);
         const url=URL.createObjectURL(imageFile);
         try {
           const dimensions=await new Promise<{width:number;height:number}>((resolve,reject)=>{
