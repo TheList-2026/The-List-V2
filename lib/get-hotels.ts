@@ -1,4 +1,4 @@
 import seed from '@/data/seed-hotels.json'
 export type Listing={id:string;name:string;description?:string;category:string;image:string;phone:string;booking:string;directions:string}
-export type Hotel={id:string;name:string;location:string;listings:Listing[]}
+export type Hotel={id:string;name:string;location:string;listings:Listing[];mode?:"demo"|"live";published?:boolean}
 export async function getHotels():Promise<Hotel[]>{const token=process.env.GITHUB_HOTELS_TOKEN;if(!token)return seed.hotels as Hotel[];try{const r=await fetch('https://api.github.com/repos/TheList-2026/The-List-V2/contents/data/shared-hotels.json?ref=main',{headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json'},cache:'no-store'});if(!r.ok)return seed.hotels as Hotel[];const j=await r.json();const raw=j.content?Buffer.from(j.content.replace(/\s/g,''),'base64').toString('utf8'):'';const parsed=JSON.parse(raw);return Array.isArray(parsed.hotels)?parsed.hotels:seed.hotels as Hotel[]}catch{return seed.hotels as Hotel[]}}

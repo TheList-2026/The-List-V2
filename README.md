@@ -34,3 +34,15 @@ Never use a real token or password in code, a GitHub commit or the chat. Redeplo
 For a hotel, import CSV first (see `marbella-admin-import.csv`), then upload a ZIP of artwork whose filenames match the CSV's `Artwork Filename` column. The client checks file type, max 5 MB per image, dimensions (1080x1920), ZIP max 35 MB and 100 files, and lists warnings. Accepted images of other dimensions are resized to 1080x1920 using contain + blurred background without stretching when you click Apply CSV. Review before Save to Shared. Shared images are currently stored inline in JSON, capped at 18 MB: for larger hotel collections migrate to dedicated object storage.
 
 Security limitations: login has no persistent rate limiting or password-reset flow; enable Vercel WAF/rate limiting or an identity provider before broad external exposure. Individual account passwords are stored in Vercel environment settings, not in source code. GitHub commits provide a basic publishing log, not a comprehensive record of local drafts or per-field changes.
+
+## Demo gallery and QR publishing (October 2026)
+
+- Homepage button goes to `/demos`. Only shared hotels with `published: true` and `mode: "demo"` (or legacy mode absent) appear there.
+- Each hotel has its own `/hotel/<hotel-id>` experience; there is no cross-hotel scrolling.
+- Admin: load shared hotels, create/edit, select Demo or Live, check Published, then **SAVE TO SHARED**. New hotels begin as drafts. Live hotels are unlisted (not secret or access-controlled).
+- QR codes are generated only for published hotels in **shared GitHub storage**. Download PNG, copy link, or manually send the QR to both admins.
+- For actual email delivery, verify `thelist.studio` in Resend and set Vercel env vars `RESEND_API_KEY` and `RESEND_FROM_EMAIL` (e.g. `The List <qr@thelist.studio>`). Until then, the Send button shows a configuration error, and Download QR works.
+- Set `NEXT_PUBLIC_SITE_URL=https://thelistv2.vercel.app` (or your final domain) in Vercel so QR codes point to the intended host.
+- Admin credentials, `ADMIN_SESSION_SECRET`, and `GITHUB_HOTELS_TOKEN` remain in Vercel; do not commit them.
+- New dependency: `qrcode` and its TypeScript definitions. Vercel must install them during deployment.
+- This package has not been production-build tested in this environment. Test a demo, QR scan, email delivery, and a two-admin shared save before giving QR codes to hotels.

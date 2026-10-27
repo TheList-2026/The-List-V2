@@ -1,0 +1,7 @@
+import Link from "next/link";
+import { getHotels } from "@/lib/get-hotels";
+export const dynamic = "force-dynamic";
+export default async function DemosPage() {
+  const hotels = (await getHotels()).filter(h => h.mode !== "live" && h.published !== false && h.listings.length > 0);
+  return <main className="min-h-dvh bg-ink px-6 py-14 text-ivory"><div className="mx-auto max-w-xl text-center"><Link href="/" className="text-[10px] uppercase tracking-[.3em] text-champagne">← The List</Link><p className="mt-16 text-[10px] uppercase tracking-[.4em] text-champagne">A private guide</p><h1 className="mt-6 font-serif text-5xl font-light">Explore our demos</h1><p className="mx-auto mt-5 max-w-sm font-serif text-xl italic text-ivory/70">A glimpse into the places worth knowing.</p><div className="mt-12 grid gap-4">{hotels.length ? hotels.map(h => <Link key={h.id} href={`/hotel/${encodeURIComponent(h.id)}`} className="glass-soft block rounded-2xl border border-champagne/20 px-7 py-7 text-left transition hover:border-champagne/60"><span className="text-[10px] uppercase tracking-[.3em] text-champagne">Hotel demo</span><h2 className="mt-3 font-serif text-3xl">{h.name}</h2><p className="mt-2 text-xs text-ivory/60">{h.location} · {h.listings.length} places</p><span className="mt-5 block text-[10px] uppercase tracking-[.25em] text-champagne">Explore →</span></Link>) : <p className="text-sm text-ivory/60">No demos published yet.</p>}</div></div></main>;
+}

@@ -148,7 +148,9 @@
           "artworkFilename": "5511.webp",
           "location": "Marbella · Costa del Sol"
         }
-      ]
+      ],
+      "mode": "demo",
+      "published": true
     }
   ]
 }

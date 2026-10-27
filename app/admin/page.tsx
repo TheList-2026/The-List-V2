@@ -16,7 +16,7 @@ type Listing = {
   directions: string;
   artworkFilename?: string;
 };
-type Hotel = { id: string; name: string; location: string; listings: Listing[] };
+type Hotel = { id: string; name: string; location: string; listings: Listing[]; mode?: "demo" | "live"; published?: boolean };
 type ImportRow = { name: string; category: Category; phone: string; booking: string; directions: string; artworkFilename: string; artworkHasName: boolean };
 function parseCSV(text: string): string[][] {
   const rows: string[][] = []; let row: string[] = []; let cell = ""; let quoted = false;
@@ -118,6 +118,8 @@ export default function AdminPage() {
   const [importHotelId, setImportHotelId] = useState<string | null>(null);
   const [removeMissing, setRemoveMissing] = useState(false);
   const [importBusy, setImportBusy] = useState(false);
+  const [emailBusy, setEmailBusy] = useState(false);
+  const [qrBusy, setQrBusy] = useState(false);
 
   useEffect(() => {
     try {
@@ -173,7 +175,7 @@ export default function AdminPage() {
         if(!mime){warnings.push(`${filename}: unsupported format; use JPG, PNG or WebP.`);continue;}
         const bytes=await entry.async("uint8array");
         if(bytes.byteLength>5*1024*1024){warnings.push(`${filename}: over 5 MB; skipped.`);continue;}
-        const imageFile=new File([bytes],filename,{type:mime});
+        const imageFile=new File([Uint8Array.from(bytes)],filename,{type:mime});
         const url=URL.createObjectURL(imageFile);
         try {
           const dimensions=await new Promise<{width:number;height:number}>((resolve,reject)=>{
@@ -212,6 +214,7 @@ export default function AdminPage() {
 
   async function saveShared() {
     if (sharedBusy) return;
+    if (!sharedLoaded) { setNotice("Load shared hotels first, then save. This protects your partner’s changes."); return; }
     if (!window.confirm("Save the hotels currently shown here for both administrators? This replaces the current shared hotel list.")) return;
     setSharedBusy(true);
     try {
@@ -223,7 +226,7 @@ export default function AdminPage() {
       if (!response.ok) throw new Error(data.error || "Unable to save shared hotels.");
       setSharedSha(data.sha);
       setSharedLoaded(true);
-      setNotice("Saved online. Your partner can click LOAD SHARED HOTELS to see the changes.");
+      setNotice("Saved online. Published demos are now listed on Explore Our Demos. Your partner can click LOAD SHARED HOTELS to see the changes.");
       await refreshActivity();
     } catch (e) { setNotice(e instanceof Error ? e.message : "Shared save failed."); }
     finally { setSharedBusy(false); }
@@ -285,8 +288,8 @@ export default function AdminPage() {
     if (!cleanName || !location.trim()) { setNotice("Enter a hotel name and location."); return; }
     const hotelSlug = slug(cleanName);
     if (!hotelSlug) { setNotice("Use a hotel name containing letters or numbers."); return; }
-    if (hotels.some(h => slug(h.name) === hotelSlug)) { setNotice("A hotel with that URL already exists."); return; }
-    const hotel: Hotel = { id: makeId(), name: cleanName, location: location.trim(), listings: [] };
+    if (hotels.some(h => h.id === hotelSlug || slug(h.name) === hotelSlug)) { setNotice("A hotel with that URL already exists."); return; }
+    const hotel: Hotel = { id: hotelSlug, name: cleanName, location: location.trim(), listings: [], mode: "demo", published: false };
     setHotels(prev => [...prev, hotel]); setActiveId(hotel.id); setHotelName(""); setLocation(""); setNotice("Test hotel created. Add its first postcard below.");
   }
   function updateHotel(fn: (hotel: Hotel) => Hotel) {
@@ -326,6 +329,30 @@ export default function AdminPage() {
   function removeHotel() {
     if (!active || !window.confirm(`Delete the test hotel "${active.name}"?`)) return;
     setHotels(prev => prev.filter(h => h.id !== activeId)); setActiveId(null); setPreview(false);
+  }
+  async function downloadQr(hotel: Hotel) {
+    setQrBusy(true);
+    try {
+      const response = await fetch(`/api/admin/qr?hotelId=${encodeURIComponent(hotel.id)}`, {cache:"no-store"});
+      if (!response.ok) { const data = await response.json(); throw new Error(data.error || "QR unavailable"); }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a"); link.href = url; link.download = `the-list-${hotel.id}-qr.png`; link.click();
+      URL.revokeObjectURL(url);
+      setNotice("QR code downloaded. Test the code with a phone before printing.");
+    } catch(e) { setNotice(e instanceof Error ? e.message : "QR download failed"); }
+    finally {setQrBusy(false);}
+  }
+  async function emailQr(hotel: Hotel) {
+    if (!window.confirm(`Email the QR code for ${hotel.name} to Ben@thelist.studio and Projects@thelist.studio?`)) return;
+    setEmailBusy(true);
+    try {
+      const response = await fetch("/api/admin/send-qr", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({hotelId:hotel.id})});
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Email could not be sent");
+      setNotice("QR email accepted for delivery to both administrators.");
+    } catch(e) { setNotice(e instanceof Error ? e.message : "Email failed"); }
+    finally {setEmailBusy(false);}
   }
   const input = (value: string, onChange: (value: string) => void, placeholder = "") => (
     <input style={field} value={value} placeholder={placeholder} onChange={e => onChange(e.target.value)} />
@@ -367,9 +394,9 @@ export default function AdminPage() {
                   <button type="button" style={button} onClick={createHotel}>+ CREATE TEST HOTEL</button>
                 </section>
                 <section style={panel}>
-                  <h2 style={{ fontSize: 18, marginTop: 0 }}>Saved test hotels ({hotels.length})</h2>
+                  <h2 style={{ fontSize: 18, marginTop: 0 }}>Hotels ({hotels.length})</h2>
                   {hotels.length === 0 && <p style={{ color: "#aaa", fontSize: 13 }}>No hotels yet. Create one above.</p>}
-                  {hotels.map(h => <button key={h.id} type="button" onClick={() => { setActiveId(h.id); setPreview(false); setNotice(""); }} style={{ display: "block", width: "100%", textAlign: "left", background: activeId === h.id ? "#38332c" : "#292929", color: "#fff", border: "1px solid #454545", padding: 15, borderRadius: 6, cursor: "pointer", marginTop: 9 }}><strong>{h.name}</strong><span style={{ display: "block", color: "#aaa", fontSize: 12, marginTop: 6 }}>{h.location} · {h.listings.length} postcards</span></button>)}
+                  {hotels.map(h => <button key={h.id} type="button" onClick={() => { setActiveId(h.id); setPreview(false); setNotice(""); }} style={{ display: "block", width: "100%", textAlign: "left", background: activeId === h.id ? "#38332c" : "#292929", color: "#fff", border: "1px solid #454545", padding: 15, borderRadius: 6, cursor: "pointer", marginTop: 9 }}><strong>{h.name}</strong><span style={{ display: "block", color: "#aaa", fontSize: 12, marginTop: 6 }}>{h.location} · {h.listings.length} postcards · {h.published ? (h.mode === "live" ? "LIVE / UNLISTED" : "DEMO / LISTED") : "DRAFT"}</span></button>)}
                 </section>
               </div>
               <div style={{ display: "grid", gap: 20, minWidth: 0, maxWidth: "100%" }}>
@@ -378,7 +405,7 @@ export default function AdminPage() {
                     <section style={panel}>
                       <h2 style={{ fontSize: 19, marginTop: 0 }}>{active.name}</h2>
                       <p style={{ color: "#aaa", fontSize: 12 }}>{active.location} · /hotel/{slug(active.name)}</p>
-                      <p style={{ color: "#c5b59f", fontSize: 12 }}>Test only — this URL is not published.</p>
+                      <p style={{ color: "#c5b59f", fontSize: 12 }}>{active.published ? "Published page — changes go live when saved to shared." : "Draft — publish below when ready."}</p>
                       <button type="button" style={secondary} onClick={removeHotel}>DELETE TEST HOTEL</button>
                     </section>
                     <section style={panel}>
@@ -523,7 +550,24 @@ export default function AdminPage() {
                 </div>
               </div>
             )}
-            <section style={{ ...panel, marginTop: 24 }}><h2 style={{ fontSize: 17, marginTop: 0 }}>Publishing and QR codes</h2><p style={{ color: "#aaa", fontSize: 13, lineHeight: 1.7 }}>Not enabled in this testing stage. Hotel data and artwork remain in this browser. QR codes will be generated once a permanent hotel URL is published.</p><button type="button" disabled style={{ ...button, opacity: .4, cursor: "not-allowed" }}>PUBLISH — NOT YET CONNECTED</button></section>
+            <section style={{ ...panel, marginTop: 24 }}>
+              <h2 style={{ fontSize: 17, marginTop: 0 }}>Publishing & QR codes</h2>
+              <p style={{ color: "#aaa", fontSize: 13, lineHeight: 1.7 }}>Set a hotel to Demo to show it in the public demo gallery, or Live for an unlisted, QR-accessible page. Changes only take effect after SAVE TO SHARED. An unlisted URL is not password protected.</p>
+              {active ? <>
+                <label style={label}>HOTEL VISIBILITY</label>
+                <select value={active.mode || "demo"} onChange={e => updateHotel(h => ({...h,mode:e.target.value as "demo"|"live"}))} style={{...field,marginBottom:12}}><option value="demo">Demo — listed in gallery</option><option value="live">Live — unlisted, QR / link only</option></select>
+                <label style={{display:"flex",gap:9,alignItems:"center",fontSize:13,marginBottom:15}}><input type="checkbox" checked={active.published === true} onChange={e => updateHotel(h => ({...h,published:e.target.checked}))}/> Published (uncheck to hide)</label>
+                <p style={{color:"#aaa",fontSize:12}}>Hotel URL: /hotel/{active.id}</p>
+                <div style={{display:"flex",flexWrap:"wrap",gap:9}}>
+                  <button type="button" style={button} onClick={saveShared} disabled={sharedBusy || !sharedLoaded}>SAVE / PUBLISH CHANGES</button>
+                  <button type="button" style={secondary} onClick={()=>downloadQr(active)} disabled={qrBusy || !active.published || !sharedLoaded}>DOWNLOAD QR</button>
+                  <button type="button" style={secondary} onClick={()=>emailQr(active)} disabled={emailBusy || !active.published || !sharedLoaded}>{emailBusy ? "SENDING…" : "SEND QR TO BOTH"}</button>
+                  <button type="button" style={secondary} onClick={()=>{void navigator.clipboard.writeText(`${window.location.origin}/hotel/${active.id}`);setNotice("Hotel link copied.")}}>COPY HOTEL LINK</button>
+                  <Link href={`/hotel/${active.id}`} target="_blank" style={{...secondary,textDecoration:"none"}}>OPEN HOTEL ↗</Link>
+                </div>
+                <p style={{color:"#aaa",fontSize:12,marginTop:12}}>QR actions use the last saved published version. Save and reload shared data after publishing before sending QR codes. Email requires RESEND_API_KEY and RESEND_FROM_EMAIL in Vercel.</p>
+              </> : <p style={{color:"#aaa",fontSize:13}}>Select a hotel to manage publishing.</p>}
+            </section>
           </>
         )}
         <footer style={{ marginTop: 32, color: "#777", fontSize: 11, textAlign: "center" }}>THE LIST · INTERNAL TESTING ONLY · <Link href="/hotel/maui-demo" style={{ color: "#bbb" }}>VIEW MAUI DEMO ↗</Link></footer>

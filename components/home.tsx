@@ -80,10 +80,10 @@ export function Home() {
               className="mt-12"
             >
               <Link
-                href="/hotel/puente-romano-marbella"
-                className="glass-soft inline-flex items-center justify-center rounded-full px-8 py-4 text-[10px] uppercase tracking-[.27em] text-ivory"
+                href="/demos"
+                className="glass-soft inline-flex items-center justify-center rounded-full px-6 py-3 text-[10px] uppercase tracking-[.27em] text-ivory"
               >
-                Explore the Marbella edit
+                Explore our demos
               </Link>
             </motion.div>
           </div>
