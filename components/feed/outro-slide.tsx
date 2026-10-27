@@ -8,23 +8,38 @@ import { SlideShell } from './slide-shell'
 
 const ease = [.22, 1, .36, 1] as const
 
+type Props = {
+  isActive: boolean
+  isRewinding: boolean
+  onBackToTop: () => void
+  hotelName: string
+}
+
 export function OutroSlide({
   isActive,
   isRewinding,
   onBackToTop,
-}: {
-  isActive: boolean
-  isRewinding: boolean
-  onBackToTop: () => void
-}) {
+  hotelName,
+}: Props) {
   return (
     <SlideShell
       image={outro.image}
-      alt="Elegant hotel stationery"
+      alt="Elegant envelope with a gold wax seal"
       isActive={isActive}
       label="Enjoy your stay"
       centered
     >
+      <motion.div
+        initial={false}
+        animate={isActive ? { opacity: 1, y: 0 } : { opacity: 0, y: -12 }}
+        transition={{ duration: 1, delay: 0.2, ease }}
+        className="absolute left-4 right-4 top-[max(4rem,env(safe-area-inset-top))] text-center"
+      >
+        <p className="font-serif text-[15px] uppercase tracking-[0.22em] text-champagne [text-shadow:0_2px_12px_rgba(0,0,0,0.7)]">
+          {hotelName}
+        </p>
+      </motion.div>
+
       <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
         <motion.h2
           initial={false}
@@ -34,14 +49,14 @@ export function OutroSlide({
               : { opacity: 0, y: 24, filter: 'blur(8px)' }
           }
           transition={{ duration: 1.2, delay: 0.35, ease }}
-          className="text-balance font-serif text-6xl font-light italic leading-[0.95] text-ivory"
+          className="text-balance font-serif text-5xl font-light italic leading-[1.05] text-ivory [text-shadow:0_2px_16px_rgba(0,0,0,0.65)]"
         >
           Enjoy your stay
         </motion.h2>
 
         <motion.span
           aria-hidden="true"
-          className="mt-8 block h-px w-16 bg-champagne/70"
+          className="mt-7 block h-px w-16 bg-champagne/70"
           initial={{ scaleX: 0 }}
           animate={{ scaleX: isActive ? 1 : 0 }}
           transition={{ duration: 1.2, delay: 0.7, ease }}
@@ -55,7 +70,7 @@ export function OutroSlide({
               : { opacity: 0, y: 12 }
           }
           transition={{ duration: 1, delay: 0.85, ease }}
-          className="mt-8 max-w-[30ch] text-pretty text-[15px] font-medium leading-relaxed text-ivory [text-shadow:0_1px_2px_rgb(0_0_0/.55),0_4px_24px_rgb(0_0_0/.45)]"
+          className="mt-7 max-w-[30ch] text-pretty text-[15px] font-medium leading-relaxed text-ivory [text-shadow:0_2px_12px_rgba(0,0,0,0.8)]"
         >
           Every place on this list was chosen with care. We hope they become
           part of your story.
