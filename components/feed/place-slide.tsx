@@ -12,8 +12,16 @@ function reveal(active: boolean, delay: number) {
   return {
     initial: false as const,
     animate: active
-      ? { opacity: 1, y: 0, filter: 'blur(0px)' }
-      : { opacity: 0, y: 24, filter: 'blur(6px)' },
+      ? {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+        }
+      : {
+          opacity: 0,
+          y: 24,
+          filter: 'blur(6px)',
+        },
     transition: {
       duration: .9,
       delay: active ? delay : 0,
@@ -40,9 +48,10 @@ export function PlaceSlide({
       isActive={isActive}
       label={`${place.name} – ${index} of ${total}`}
     >
+      {/* PAGE NUMBER — TOP RIGHT */}
       <motion.div
         {...reveal(isActive, .05)}
-        className="absolute left-6 top-[max(2rem,env(safe-area-inset-top))] z-20"
+        className="absolute right-6 top-[max(2rem,env(safe-area-inset-top))] z-20"
       >
         <span className="font-serif text-sm italic text-champagne [text-shadow:0_2px_12px_rgba(0,0,0,0.8)]">
           {String(index).padStart(2, '0')}
@@ -52,6 +61,7 @@ export function PlaceSlide({
         </span>
       </motion.div>
 
+      {/* BUSINESS DETAILS */}
       <div className="mt-auto px-6 pb-[max(1.75rem,env(safe-area-inset-bottom))]">
         <motion.h2
           {...reveal(isActive, .15)}
@@ -67,6 +77,7 @@ export function PlaceSlide({
           {place.description}
         </motion.p>
 
+        {/* EXISTING ACTION BUTTONS — UNCHANGED */}
         <div className="mt-7">
           <ActionBar place={place} isActive={isActive} />
         </div>
