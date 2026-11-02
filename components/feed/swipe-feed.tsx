@@ -20,6 +20,11 @@ type Props = {
 
 export function SwipeFeed({ places, hotelName }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const touchStartY = useRef<number | null>(null)
+  const touchStartScroll = useRef(0)
+  const firstSlideAnimating = useRef(false)
+  const isRewindingRef = useRef(false)
+
   const [activeIndex, setActiveIndex] = useState(0)
   const [isRewinding, setIsRewinding] = useState(false)
 
@@ -33,8 +38,11 @@ export function SwipeFeed({ places, hotelName }: Props) {
 
     const onScroll = () => {
       cancelAnimationFrame(frame)
+
       frame = requestAnimationFrame(() => {
-        setActiveIndex(Math.round(el.scrollTop / el.clientHeight))
+        setActiveIndex(
+          Math.round(el.scrollTop / el.clientHeight)
+        )
       })
     }
 
@@ -46,15 +54,118 @@ export function SwipeFeed({ places, hotelName }: Props) {
     }
   }, [])
 
+  // Make the first upward swipe reliably open Postcard 01.
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+
+    const onTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1) {
+        touchStartY.current = null
+        return
+      }
+
+      touchStartY.current = event.touches[0].clientY
+      touchStartScroll.current = el.scrollTop
+    }
+
+    const onTouchEnd = (event: TouchEvent) => {
+      const startY = touchStartY.current
+      touchStartY.current = null
+
+      if (
+        startY === null ||
+        event.changedTouches.length !== 1 ||
+        firstSlideAnimating.current ||
+        isRewindingRef.current ||
+        places.length === 0
+      ) {
+        return
+      }
+
+      const distance =
+        startY - event.changedTouches[0].clientY
+
+      // Only handle upward gestures beginning on the welcome screen.
+      if (
+        distance < 25 ||
+        touchStartScroll.current > el.clientHeight * .1
+      ) {
+        return
+      }
+
+      firstSlideAnimating.current = true
+
+      // Temporarily disable snapping so the browser cannot
+      // pull the feed back to the welcome screen.
+      el.style.scrollSnapType = 'none'
+
+      const destination = el.clientHeight
+
+      const finish = () => {
+        el.scrollTop = destination
+        el.style.scrollSnapType = ''
+        firstSlideAnimating.current = false
+        setActiveIndex(1)
+      }
+
+      if (
+        window.matchMedia(
+          '(prefers-reduced-motion: reduce)'
+        ).matches
+      ) {
+        finish()
+        return
+      }
+
+      animate(el.scrollTop, destination, {
+        duration: .5,
+        ease: [.22, 1, .36, 1],
+        onUpdate: (value) => {
+          el.scrollTop = value
+        },
+        onComplete: finish,
+      })
+    }
+
+    const onTouchCancel = () => {
+      touchStartY.current = null
+    }
+
+    el.addEventListener('touchstart', onTouchStart, {
+      passive: true,
+    })
+
+    el.addEventListener('touchend', onTouchEnd, {
+      passive: true,
+    })
+
+    el.addEventListener('touchcancel', onTouchCancel, {
+      passive: true,
+    })
+
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchend', onTouchEnd)
+      el.removeEventListener('touchcancel', onTouchCancel)
+    }
+  }, [places.length])
+
   const backToTop = useCallback(() => {
     const el = containerRef.current
-    if (!el || isRewinding) return
+    if (!el || isRewindingRef.current) return
 
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (
+      window.matchMedia(
+        '(prefers-reduced-motion: reduce)'
+      ).matches
+    ) {
       el.scrollTo({ top: 0 })
+      setActiveIndex(0)
       return
     }
 
+    isRewindingRef.current = true
     setIsRewinding(true)
     el.style.scrollSnapType = 'none'
 
@@ -65,13 +176,17 @@ export function SwipeFeed({ places, hotelName }: Props) {
         el.scrollTop = value
       },
       onComplete: () => {
+        el.scrollTop = 0
         el.style.scrollSnapType = ''
+        isRewindingRef.current = false
         setIsRewinding(false)
+        setActiveIndex(0)
       },
     })
-  }, [isRewinding])
+  }, [])
 
-  const showChrome = activeIndex > 0 && activeIndex < lastIndex
+  const showChrome =
+    activeIndex > 0 && activeIndex < lastIndex
 
   return (
     <div className="relative mx-auto h-dvh w-full overflow-hidden bg-ink sm:max-w-[calc(100dvh*9/16)] sm:shadow-[0_0_80px_rgba(0,0,0,0.6)]">
@@ -113,7 +228,10 @@ export function SwipeFeed({ places, hotelName }: Props) {
               initial={{ opacity: 0, y: -12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.6, ease: [.22, 1, .36, 1] }}
+              transition={{
+                duration: .6,
+                ease: [.22, 1, .36, 1],
+              }}
               className={`${BRAND_POSITION} z-20 text-white mix-blend-difference`}
             >
               THE LIST
@@ -125,7 +243,10 @@ export function SwipeFeed({ places, hotelName }: Props) {
               initial={{ opacity: 0, y: -12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.6, ease: [.22, 1, .36, 1] }}
+              transition={{
+                duration: .6,
+                ease: [.22, 1, .36, 1],
+              }}
               className={`${BRAND_POSITION} pointer-events-none z-20 text-white mix-blend-saturation`}
             >
               THE LIST
@@ -143,14 +264,20 @@ export function SwipeFeed({ places, hotelName }: Props) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.5, ease: 'easeInOut' }}
+            transition={{
+              duration: .5,
+              ease: 'easeInOut',
+            }}
           >
             <motion.span
               className="block h-px w-24 origin-center bg-champagne"
               initial={{ scaleX: 0 }}
               animate={{ scaleX: 1 }}
               exit={{ scaleX: 0 }}
-              transition={{ duration: 0.8, ease: [.22, 1, .36, 1] }}
+              transition={{
+                duration: .8,
+                ease: [.22, 1, .36, 1],
+              }}
             />
           </motion.div>
         )}
