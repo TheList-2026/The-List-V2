@@ -7,6 +7,7 @@ import JSZip from "jszip";
 type Category = "DINING" | "SHOPPING" | "EXPERIENCES";
 type Listing = {
   id: string;
+  businessId?: string;
   name: string;
   category: Category;
   image: string;
@@ -17,7 +18,7 @@ type Listing = {
   artworkFilename?: string;
 };
 type Hotel = { id: string; name: string; location: string; listings: Listing[]; mode?: "demo" | "live"; published?: boolean };
-type ImportRow = { name: string; category: Category; phone: string; booking: string; directions: string; artworkFilename: string; artworkHasName: boolean };
+type ImportRow = { businessId: string; name: string; category: Category; phone: string; booking: string; directions: string; artworkFilename: string; artworkHasName: boolean };
 function parseCSV(text: string): string[][] {
   const rows: string[][] = []; let row: string[] = []; let cell = ""; let quoted = false;
   const src = text.replace(/^\uFEFF/, "");
@@ -114,6 +115,8 @@ export default function AdminPage() {
   const [sharedBusy, setSharedBusy] = useState(false);
   const [sharedLoaded, setSharedLoaded] = useState(false);
   const [importRows, setImportRows] = useState<ImportRow[] | null>(null);
+  const [sheetLink, setSheetLink] = useState("");
+  const [sheetBusy, setSheetBusy] = useState(false);
   const [importFiles, setImportFiles] = useState<File[]>([]);
   const [importHotelId, setImportHotelId] = useState<string | null>(null);
   const [removeMissing, setRemoveMissing] = useState(false);
@@ -181,14 +184,14 @@ export default function AdminPage() {
           const dimensions=await new Promise<{width:number;height:number}>((resolve,reject)=>{
             const image=new Image(); image.onload=()=>resolve({width:image.naturalWidth,height:image.naturalHeight}); image.onerror=()=>reject(new Error("Unreadable image")); image.src=url;
           });
-          if(dimensions.width!==1080||dimensions.height!==1920) warnings.push(`${filename}: ${dimensions.width} × ${dimensions.height} (required 1080 × 1920). Will convert without stretching when CSV is applied.`);
+          if(dimensions.width!==1080||dimensions.height!==1920) warnings.push(`${filename}: ${dimensions.width} × ${dimensions.height} (required 1080 × 1920). Will convert without stretching when changes are applied.`);
           accepted.push(imageFile);
         }catch{warnings.push(`${filename}: invalid or unreadable image; skipped.`)}finally{URL.revokeObjectURL(url)}
       }
       const names=new Set<string>();
       for(const f of accepted){const key=fileKey(f.name);if(names.has(key))warnings.push(`${f.name}: duplicate filename in ZIP.`);names.add(key)}
       setImportFiles(accepted); setArtworkWarnings(warnings);
-      setNotice(`${accepted.length} image(s) loaded from ZIP. ${warnings.length} warning(s). Review before applying CSV.`);
+      setNotice(`${accepted.length} image(s) loaded from ZIP. ${warnings.length} warning(s). Review before applying changes.`);
     }catch(e){setArtworkWarnings([e instanceof Error?e.message:"Unable to open ZIP."]);setImportFiles([])}
   }
   async function loadShared() {
@@ -233,52 +236,85 @@ export default function AdminPage() {
   }
 
 
-  async function readImportCSV(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]; if (!file || !active) return;
+  async function readGoogleSheet() {
+    if (!active || sheetBusy) return;
+    setSheetBusy(true);
     try {
-      const matrix = parseCSV(await file.text());
-      if (matrix.length < 2) throw new Error("CSV needs a header and at least one business.");
+      const response = await fetch(`/api/admin/google-sheet?url=${encodeURIComponent(sheetLink.trim())}`, { cache: "no-store" });
+      const data: { csv?: string; error?: string } = await response.json();
+      if (!response.ok || typeof data.csv !== "string") throw new Error(data.error || "Unable to read Google Sheet.");
+      const matrix = parseCSV(data.csv);
+      if (matrix.length < 2) throw new Error("Google Sheet needs a header and at least one business.");
       const headers = matrix[0].map(x => x.toLowerCase().replace(/[^a-z0-9]/g, ""));
       const col = (name: string) => headers.indexOf(name);
-      for (const required of ["businessname", "category", "artworkfilename"]) if (col(required) < 0) throw new Error(`Missing CSV column: ${required}. Use the provided template.`);
+      for (const required of ["businessid", "businessname", "category"])
+        if (col(required) < 0) throw new Error(`Missing Google Sheet column: ${required}.`);
       const get = (r: string[], key: string) => (r[col(key)] || "").trim();
-      const seen = new Set<string>();
+      const seenIds = new Set<string>();
       const parsed: ImportRow[] = matrix.slice(1).map((r, index) => {
-        const name = get(r, "businessname"); const rawCategory = get(r, "category").toUpperCase();
+        const businessId = get(r, "businessid");
+        const name = get(r, "businessname");
+        const rawCategory = get(r, "category").toUpperCase();
+        if (!businessId || !/^[a-zA-Z0-9_-]+$/.test(businessId)) throw new Error(`Row ${index + 2}: Business ID is missing or invalid (use letters, numbers, _ or -).`);
+        if (seenIds.has(businessId.toLowerCase())) throw new Error(`Duplicate Business ID: ${businessId}.`);
+        seenIds.add(businessId.toLowerCase());
         if (!name) throw new Error(`Row ${index + 2}: business name missing.`);
         if (!["DINING", "SHOPPING", "EXPERIENCES"].includes(rawCategory)) throw new Error(`Row ${index + 2}: category must be DINING, SHOPPING or EXPERIENCES.`);
-        const key = normalizedName(name); if (seen.has(key)) throw new Error(`Duplicate business in CSV: ${name}.`); seen.add(key);
         const booking = get(r, "bookingurl"), directions = get(r, "directionsurl");
         if (![booking, directions].every(validUrl)) throw new Error(`Row ${index + 2}: links must begin https:// or http://.`);
-        return { name, category: rawCategory as Category, phone: get(r, "phone"), booking, directions, artworkFilename: get(r, "artworkfilename"), artworkHasName: ["yes", "true", "1"].includes(get(r, "artworkhasname").toLowerCase()) };
+        const artworkFilename = get(r, "artworkfilename") || `${businessId}`;
+        return { businessId, name, category: rawCategory as Category, phone: get(r, "phone"), booking, directions, artworkFilename, artworkHasName: ["yes", "true", "1"].includes(get(r, "artworkhasname").toLowerCase()) };
       });
-      setImportRows(parsed); setImportHotelId(active.id); setImportFiles([]); setRemoveMissing(false);
-      setNotice(`CSV checked: ${parsed.length} businesses. Upload their artwork, then review changes.`);
-    } catch (e) { setImportRows(null); setNotice(e instanceof Error ? e.message : "Cannot read CSV."); }
-    event.target.value = "";
+      setImportRows(parsed);
+      setImportHotelId(active.id);
+      setImportFiles([]);
+      setArtworkWarnings([]);
+      setRemoveMissing(false);
+      setNotice(`Google Sheet checked: ${parsed.length} businesses. Upload artwork ZIP if needed, then review changes.`);
+    } catch (e) {
+      setImportRows(null);
+      setNotice(e instanceof Error ? e.message : "Cannot read Google Sheet.");
+    } finally { setSheetBusy(false); }
   }
+
   async function applyImport() {
     if (!active || !importRows || importHotelId !== active.id || importBusy) return;
     setImportBusy(true);
     try {
-      const existing = new Map(active.listings.map(item => [normalizedName(item.name), item]));
+      const existingById = new Map(active.listings.filter(item => item.businessId).map(item => [item.businessId!.toLowerCase(), item]));
+      const legacyByName = new Map(active.listings.filter(item => !item.businessId).map(item => [normalizedName(item.name), item]));
       const uploads = new Map<string, File>();
-      for (const f of importFiles) { const key = fileKey(f.name); if (uploads.has(key)) throw new Error(`Duplicate artwork filename: ${f.name}`); uploads.set(key, f); }
+      for (const f of importFiles) {
+        const key = fileKey(f.name);
+        if (uploads.has(key)) throw new Error(`Duplicate artwork filename: ${f.name}`);
+        uploads.set(key, f);
+      }
+      const findFile = (row: ImportRow): File | undefined => {
+        const requested = fileKey(row.artworkFilename);
+        if (requested.includes(".")) return uploads.get(requested);
+        return [".webp", ".jpg", ".jpeg", ".png"].map(ext => uploads.get(`${requested}${ext}`)).find(Boolean);
+      };
       const images = new Map<string, string>();
-      const needed = [...new Set(importRows.map(r => fileKey(r.artworkFilename)).filter(Boolean))];
-      for (const key of needed) { const file = uploads.get(key); if (file) images.set(key, await optimizeImage(file)); }
+      for (const row of importRows) {
+        const file = findFile(row);
+        if (file) images.set(row.businessId.toLowerCase(), await optimizeImage(file));
+      }
+      const matchedExistingIds = new Set<string>();
       const updated: Listing[] = importRows.map(row => {
-        const previous = existing.get(normalizedName(row.name));
-        const filename = fileKey(row.artworkFilename);
-        const image = images.get(filename) || previous?.image || "";
-        return { id: previous?.id || makeId(), name: row.name, category: row.category, phone: row.phone, booking: row.booking, directions: row.directions, artworkHasName: row.artworkHasName, artworkFilename: row.artworkFilename, image };
+        const previous = existingById.get(row.businessId.toLowerCase()) || legacyByName.get(normalizedName(row.name));
+        if (previous) matchedExistingIds.add(previous.id);
+        return {
+          id: previous?.id || makeId(), businessId: row.businessId,
+          name: row.name, category: row.category, phone: row.phone,
+          booking: row.booking, directions: row.directions,
+          artworkHasName: row.artworkHasName, artworkFilename: row.artworkFilename,
+          image: images.get(row.businessId.toLowerCase()) || previous?.image || "",
+        };
       });
-      const imported = new Set(importRows.map(r => normalizedName(r.name)));
-      const retained = removeMissing ? [] : active.listings.filter(item => !imported.has(normalizedName(item.name)));
-      const next = [...updated, ...retained];
-      setHotels(prev => prev.map(h => h.id === active.id ? { ...h, listings: next } : h));
+      const retained = removeMissing ? [] : active.listings.filter(item => !matchedExistingIds.has(item.id));
+      setHotels(prev => prev.map(h => h.id === active.id ? { ...h, listings: [...updated, ...retained] } : h));
       setImportRows(null); setImportFiles([]); setImportHotelId(null); setRemoveMissing(false);
-      setNotice(`CSV applied to ${active.name}: ${updated.length} imported, ${retained.length} existing retained. Review postcards, then SAVE TO SHARED.`);
+      setNotice(`Google Sheet applied to ${active.name}: ${updated.length} imported, ${retained.length} existing retained. Review postcards, then SAVE TO SHARED.`);
     } catch (e) { setNotice(e instanceof Error ? e.message : "Import failed."); }
     finally { setImportBusy(false); }
   }
@@ -408,42 +444,47 @@ export default function AdminPage() {
                       <p style={{ color: "#c5b59f", fontSize: 12 }}>{active.published ? "Published page — changes go live when saved to shared." : "Draft — publish below when ready."}</p>
                       <button type="button" style={secondary} onClick={removeHotel}>DELETE TEST HOTEL</button>
                     </section>
-                    <section style={panel}>
-                      <h2 style={{ fontSize: 18, marginTop: 0 }}>CSV import / Replace CSV</h2>
-                      <p style={{ color: "#bbb", fontSize: 13, lineHeight: 1.6 }}>Import a CSV for {active.name}. Upload named artwork files, review changes, then apply. Replacing a CSV updates existing businesses without duplicating them.</p>
-                      <label style={label}>1. SELECT CSV</label>
-                      <input type="file" accept=".csv,text/csv" onChange={readImportCSV} style={{ ...field, marginBottom: 16 }} />
-                      {importRows && importHotelId === active.id && <>
-                        <label style={label}>2. UPLOAD ARTWORK ZIP (OR SELECT INDIVIDUAL FILES)</label>
-                        <input type="file" accept=".zip,application/zip" onChange={uploadZip} style={{...field,marginBottom:12}} />
-                        <label style={label}>OR SELECT INDIVIDUAL IMAGES</label>
-                        <input type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={e => setImportFiles(Array.from(e.target.files || []))} style={{ ...field, marginBottom: 16 }} />
-                        {artworkWarnings.length>0 && <div role="alert" style={{background:"#382c24",border:"1px solid #8d7051",padding:12,marginBottom:14,fontSize:12}}><strong>Artwork validation — {artworkWarnings.length} warning(s)</strong>{artworkWarnings.map((w,i)=><p key={i} style={{margin:"8px 0 0"}}>{w}</p>)}</div>}
-                        <p style={{ color: "#bbb", fontSize: 12 }}>{importFiles.length} image(s) selected. Exact filenames match the Artwork Filename CSV column.</p>
-                        <h3 style={{ fontSize: 14 }}>3. Review changes</h3>
-                        {(() => {
-                          const old = new Map(active.listings.map(x => [normalizedName(x.name), x]));
-                          const incoming = new Set(importRows.map(x => normalizedName(x.name)));
-                          const removed = active.listings.filter(x => !incoming.has(normalizedName(x.name)));
-                          return <>
-                            <p style={{ color: "#ddd", fontSize: 12 }}>{importRows.filter(x => old.has(normalizedName(x.name))).length} updates · {importRows.filter(x => !old.has(normalizedName(x.name))).length} new · {removed.length} absent from CSV</p>
-                            <div style={{ maxHeight: 300, overflowY: "auto", borderTop: "1px solid #444" }}>
-                              {importRows.map(row => {
-                                const prior = old.get(normalizedName(row.name));
-                                const matched = importFiles.some(f => fileKey(f.name) === fileKey(row.artworkFilename) && !!row.artworkFilename);
-                                return <div key={row.name} style={{ padding: "9px 0", borderBottom: "1px solid #333", fontSize: 12 }}><strong>{row.name}</strong> · {prior ? "UPDATE" : "NEW"}<div style={{ color: matched ? "#b9d7b0" : prior?.image ? "#d9c5a5" : "#f1aaa5", marginTop: 4 }}>{matched ? "New artwork matched" : prior?.image ? "Keeping existing artwork" : "No artwork yet — upload matching filename"}</div></div>;
-                              })}
-                            </div>
-                            {removed.length > 0 && <label style={{ display: "flex", gap: 9, alignItems: "flex-start", color: "#ddd", fontSize: 12, marginTop: 14 }}><input type="checkbox" checked={removeMissing} onChange={e => setRemoveMissing(e.target.checked)} />Remove {removed.length} business(es) absent from this CSV ({removed.map(x => x.name).join(", ")}). Leave unchecked to keep them.</label>}
-                          </>;
-                        })()}
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 9, marginTop: 16 }}>
-                          <button type="button" disabled={importBusy} style={button} onClick={applyImport}>{importBusy ? "PROCESSING…" : "APPLY CSV CHANGES"}</button>
-                          <button type="button" disabled={importBusy} style={secondary} onClick={() => { setImportRows(null); setImportFiles([]); setImportHotelId(null); }}>CANCEL</button>
-                        </div>
-                      </>}
-                    </section>
-                    <section style={panel}>
+                                         <section style={panel}>
+                       <h2 style={{ fontSize: 18, marginTop: 0 }}>Google Sheets import / Sync</h2>
+                       <p style={{ color: "#bbb", fontSize: 13, lineHeight: 1.6 }}>Use a separate Google Sheet for {active.name}. Publish its business tab to the web as CSV, then paste the published link. Business IDs match artwork ZIP filenames (e.g. 5501.webp). Changes are reviewed before saving.</p>
+                       <label style={label}>1. GOOGLE SHEETS PUBLISHED CSV LINK</label>
+                       <input type="url" value={sheetLink} onChange={e => setSheetLink(e.target.value)} placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv" style={{ ...field, marginBottom: 12 }} />
+                       <button type="button" disabled={sheetBusy || !sheetLink.trim()} style={{ ...button, marginBottom: 16 }} onClick={readGoogleSheet}>{sheetBusy ? "READING SHEET…" : "IMPORT / SYNC GOOGLE SHEET"}</button>
+                       <p style={{ color: "#aaa", fontSize: 12, marginTop: 0 }}>Required columns: Business ID, Business Name, Category. Optional: Phone, Booking URL, Directions URL, Artwork Filename, Artwork Has Name. Keep business IDs unique. A published sheet is publicly readable, so do not include private information.</p>
+                       {importRows && importHotelId === active.id && <>
+                         <label style={label}>2. UPLOAD ARTWORK ZIP (OR INDIVIDUAL IMAGES)</label>
+                         <input type="file" accept=".zip,application/zip" onChange={uploadZip} style={{ ...field, marginBottom: 12 }} />
+                         <label style={label}>OR SELECT INDIVIDUAL IMAGES</label>
+                         <input type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={e => setImportFiles(Array.from(e.target.files || []))} style={{ ...field, marginBottom: 16 }} />
+                         {artworkWarnings.length > 0 && <div role="alert" style={{ background: "#382c24", border: "1px solid #8d7051", padding: 12, marginBottom: 14, fontSize: 12 }}><strong>Artwork validation — {artworkWarnings.length} warning(s)</strong>{artworkWarnings.map((w, i) => <p key={i} style={{ margin: "8px 0 0" }}>{w}</p>)}</div>}
+                         <p style={{ color: "#bbb", fontSize: 12 }}>{importFiles.length} image(s) selected. Match filenames to Business ID: 5501.webp, 5501.jpg or 5501.png.</p>
+                         <h3 style={{ fontSize: 14 }}>3. Review changes</h3>
+                         {(() => {
+                           const byId = new Map(active.listings.filter(x => x.businessId).map(x => [x.businessId!.toLowerCase(), x]));
+                           const byName = new Map(active.listings.filter(x => !x.businessId).map(x => [normalizedName(x.name), x]));
+                           const previousFor = (r: ImportRow) => byId.get(r.businessId.toLowerCase()) || byName.get(normalizedName(r.name));
+                           const matchedIds = new Set(importRows.map(r => previousFor(r)?.id).filter(Boolean));
+                           const removed = active.listings.filter(x => !matchedIds.has(x.id));
+                           return <>
+                             <p style={{ color: "#ddd", fontSize: 12 }}>{importRows.filter(x => previousFor(x)).length} updates · {importRows.filter(x => !previousFor(x)).length} new · {removed.length} absent from sheet</p>
+                             <div style={{ maxHeight: 300, overflowY: "auto", borderTop: "1px solid #444" }}>
+                               {importRows.map(row => {
+                                 const prior = previousFor(row);
+                                 const requested = fileKey(row.artworkFilename);
+                                 const matched = importFiles.some(f => { const filename = fileKey(f.name); return requested.includes(".") ? filename === requested : [".webp", ".jpg", ".jpeg", ".png"].some(ext => filename === `${requested}${ext}`); });
+                                 return <div key={row.businessId} style={{ padding: "9px 0", borderBottom: "1px solid #333", fontSize: 12 }}><strong>{row.businessId} · {row.name}</strong> · {prior ? "UPDATE" : "NEW"}<div style={{ color: matched ? "#b9d7b0" : prior?.image ? "#d9c5a5" : "#f1aaa5", marginTop: 4 }}>{matched ? "New artwork matched" : prior?.image ? "Keeping existing artwork" : "No artwork yet — upload matching filename"}</div></div>;
+                               })}
+                             </div>
+                             {removed.length > 0 && <label style={{ display: "flex", gap: 9, alignItems: "flex-start", color: "#ddd", fontSize: 12, marginTop: 14 }}><input type="checkbox" checked={removeMissing} onChange={e => setRemoveMissing(e.target.checked)} />Remove {removed.length} business(es) absent from this Google Sheet ({removed.map(x => x.name).join(", ")}). Leave unchecked to keep them.</label>}
+                           </>;
+                         })()}
+                         <div style={{ display: "flex", flexWrap: "wrap", gap: 9, marginTop: 16 }}>
+                           <button type="button" disabled={importBusy} style={button} onClick={applyImport}>{importBusy ? "PROCESSING…" : "APPLY GOOGLE SHEET CHANGES"}</button>
+                           <button type="button" disabled={importBusy} style={secondary} onClick={() => { setImportRows(null); setImportFiles([]); setImportHotelId(null); }}>CANCEL</button>
+                         </div>
+                       </>}
+                     </section>
+<section style={panel}>
                       <h2 style={{ fontSize: 18, marginTop: 0 }}>Add business postcard</h2>
                       <label style={label}>BUSINESS NAME</label><div style={{ marginBottom: 15 }}>{input(name, setName, "Business name")}</div>
                       <label style={label}>CATEGORY</label><select style={{ ...field, marginBottom: 15 }} value={category} onChange={e => setCategory(e.target.value as Category)}><option value="DINING">Restaurant</option><option value="SHOPPING">Fashion / Retail</option><option value="EXPERIENCES">Experience</option></select>
