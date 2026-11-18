@@ -6,6 +6,19 @@
       "location": "Marbella, Spain",
       "listings": [
         {
+          "id": "5507",
+          "name": "Magna Super Cars",
+          "description": "Supercar & Luxury Vintage Hire",
+          "category": "Curated destination",
+          "image": "/marbella/5507.webp",
+          "phone": "+34951661126",
+          "booking": "https://www.magnasupercars.com/en/services/rentals/",
+          "directions": "https://maps.app.goo.gl/Kx1Xz6NoLNkAp8Z8A",
+          "artworkHasName": false,
+          "artworkFilename": "5507.webp",
+          "location": "Marbella · Costa del Sol"
+        },
+        {
           "id": "5502",
           "name": "Santa Clara Golf",
           "description": "Luxury golf escape in the foothills",
@@ -81,19 +94,6 @@
           "directions": "",
           "artworkHasName": false,
           "artworkFilename": "5506.webp",
-          "location": "Marbella · Costa del Sol"
-        },
-        {
-          "id": "5507",
-          "name": "Magna Super Cars",
-          "description": "Supercar & Luxury Vintage Hire",
-          "category": "Curated destination",
-          "image": "/marbella/5507.webp",
-          "phone": "+34951661126",
-          "booking": "https://www.magnasupercars.com/en/services/rentals/",
-          "directions": "https://maps.app.goo.gl/Kx1Xz6NoLNkAp8Z8A",
-          "artworkHasName": false,
-          "artworkFilename": "5507.webp",
           "location": "Marbella · Costa del Sol"
         },
         {
