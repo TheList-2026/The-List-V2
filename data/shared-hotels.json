@@ -6,19 +6,6 @@
       "location": "Marbella, Spain",
       "listings": [
         {
-          "id": "5501",
-          "name": "La Scala",
-          "description": "Contemporary italian dining",
-          "category": "Curated destination",
-          "image": "/marbella/5501.webp",
-          "phone": "+34951569362",
-          "booking": "http://www.lascalamarbella.com/",
-          "directions": "https://maps.app.goo.gl/8j6vWkdg5PYvP9F47",
-          "artworkHasName": false,
-          "artworkFilename": "5501.webp",
-          "location": "Marbella · Costa del Sol"
-        },
-        {
           "id": "5502",
           "name": "Santa Clara Golf",
           "description": "Luxury golf escape in the foothills",
@@ -29,6 +16,19 @@
           "directions": "https://maps.app.goo.gl/Hb5mwUkUtvW1zs468",
           "artworkHasName": false,
           "artworkFilename": "5502.webp",
+          "location": "Marbella · Costa del Sol"
+        },
+        {
+          "id": "5501",
+          "name": "La Scala",
+          "description": "Contemporary italian dining",
+          "category": "Curated destination",
+          "image": "/marbella/5501.webp",
+          "phone": "+34951569362",
+          "booking": "http://www.lascalamarbella.com/",
+          "directions": "https://maps.app.goo.gl/8j6vWkdg5PYvP9F47",
+          "artworkHasName": false,
+          "artworkFilename": "5501.webp",
           "location": "Marbella · Costa del Sol"
         },
         {
