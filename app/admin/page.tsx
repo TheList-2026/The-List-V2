@@ -127,7 +127,74 @@ export default function AdminPage(){
  useEffect(()=>{if(!approved)return;const timer=setInterval(()=>{if(dirtyRef.current&&!savingRef.current&&status!=='conflict')void saveShared()},1800);return()=>clearInterval(timer)},[approved,status]);
  async function login(e:React.FormEvent<HTMLFormElement>){e.preventDefault();try{const r=await fetch('/api/admin/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Unable to sign in.');approvedRef.current=true;setApproved(true);setPassword('');setAuthError('')}catch(e){setAuthError(e instanceof Error?e.message:'Login failed.')}}
  async function signOut(){await fetch('/api/admin/session',{method:'DELETE'});approvedRef.current=false;readyRef.current=false;setApproved(false);showHotels([]);selectHotel('')}
- async function readSheet(link:string):Promise<ImportRow[]>{const r=await fetch(`/api/admin/google-sheet?url=${encodeURIComponent(link.trim())}`,{cache:'no-store'});const d=await r.json();if(!r.ok||typeof d.csv!=='string')throw new Error(d.error||'Cannot read Google Sheet');const matrix=parseCSV(d.csv);if(matrix.length<2)throw new Error('Sheet must contain a header and at least one business.');const headers=matrix[0].map(x=>x.toLowerCase().replace(/[^a-z0-9]/g,''));const col=(s:string)=>headers.indexOf(s);for(const key of ['businessid','businessname','category'])if(col(key)<0)throw new Error(`Missing Google Sheet column: ${key}`);const get=(r:string[],key:string)=> (r[col(key)]||'').trim();const seen=new Set<string>();return matrix.slice(1).map((r,i)=>{const businessId=get(r,'businessid');const name=get(r,'businessname');const category=get(r,'category').toUpperCase();if(!businessId||!/^[a-zA-Z0-9_-]+$/.test(businessId))throw new Error(`Row ${i+2}: invalid Business ID`);if(seen.has(businessId.toLowerCase()))throw new Error(`Duplicate Business ID ${businessId}`);seen.add(businessId.toLowerCase());if(!name)throw new Error(`Row ${i+2}: missing business name`);if(!['DINING','SHOPPING','EXPERIENCES'].includes(category))throw new Error(`Row ${i+2}: invalid category`);const booking=get(r,'bookingurl'),directions=get(r,'directionsurl');if(!validUrl(booking)||!validUrl(directions))throw new Error(`Row ${i+2}: invalid link`);return {businessId,name,category:category as Category,phone:get(r,'phone'),booking,directions,artworkFilename:get(r,'artworkfilename')||businessId,artworkHasName:['yes','true','1'].includes(get(r,'artworkhasname').toLowerCase())}})}
+ async function readSheet(link: string): Promise<ImportRow[]> {
+   const response = await fetch(`/api/admin/google-sheet?url=${encodeURIComponent(link.trim())}`, { cache: "no-store" });
+   const data = await response.json();
+   if (!response.ok || typeof data.csv !== "string") throw new Error(data.error || "Cannot read Google Sheet");
+
+   const matrix = parseCSV(data.csv);
+   if (matrix.length < 2) throw new Error("Sheet must contain a header and at least one business.");
+
+   // Accept the original template and the simpler nine-column business sheet.
+   // Normalisation ignores spaces, punctuation and capitalisation in headings.
+   const headers = matrix[0].map(normalizedName);
+   const column = (...names: string[]) => names.map(name => headers.indexOf(normalizedName(name))).find(index => index >= 0) ?? -1;
+   const get = (row: string[], ...names: string[]) => {
+     const index = column(...names);
+     return index < 0 ? "" : (row[index] || "").trim();
+   };
+
+   for (const [description, names] of [
+     ["ID", ["ID", "Business ID"]],
+     ["Business name", ["Business name", "Business Name"]],
+     ["Type", ["Type", "Category"]],
+   ] as const) {
+     if (column(...names) < 0) throw new Error(`Missing Google Sheet column: ${description}`);
+   }
+
+   const seen = new Set<string>();
+   return matrix.slice(1).map((row, index) => {
+     const line = index + 2;
+     const businessId = get(row, "ID", "Business ID");
+     const name = get(row, "Business name", "Business Name");
+     const rawType = get(row, "Type", "Category").toLowerCase().trim();
+     const description = get(row, "Description").toLowerCase();
+
+     if (!businessId || !/^[a-zA-Z0-9_-]+$/.test(businessId)) throw new Error(`Row ${line}: ID must contain only letters, numbers, underscores or hyphens.`);
+     if (seen.has(businessId.toLowerCase())) throw new Error(`Row ${line}: duplicate ID ${businessId}.`);
+     seen.add(businessId.toLowerCase());
+     if (!name) throw new Error(`Row ${line}: missing Business name.`);
+
+     let category: Category;
+     if (["dining", "restaurant", "restaurants", "food", "cafe", "café", "bar", "fine dining"].includes(rawType)) category = "DINING";
+     else if (["shopping", "retail", "shop", "shops", "fashion", "boutique", "luxury retail", "store"].includes(rawType)) category = "SHOPPING";
+     else if (["experiences", "experience", "activity", "activities", "spa", "wellness", "attraction"].includes(rawType)) category = "EXPERIENCES";
+     else if (["advertiser", "featured", "business"].includes(rawType)) {
+       // Some existing sheets use Type for advertiser status rather than category.
+       // Use the supplied description to classify those rows where possible.
+       if (/boutique|fashion|jewel|retail|shopping|designer|clothing|watch store/.test(description)) category = "SHOPPING";
+       else if (/spa|wellness|excursion|tour|experience|activity/.test(description)) category = "EXPERIENCES";
+       else if (/restaurant|dining|cafe|café|bistro|italian|french|steak|sushi|seafood|cocktail|bar|cuisine/.test(description)) category = "DINING";
+       else throw new Error(`Row ${line}: Type is '${rawType}'. Set Type to Restaurant, Shopping or Experiences so the postcard category is clear.`);
+     } else throw new Error(`Row ${line}: unrecognised Type '${rawType}'. Use Restaurant, Shopping or Experiences.`);
+
+     const booking = get(row, "Weblink", "Booking URL");
+     const directions = get(row, "Map", "Directions URL");
+     if (!validUrl(booking)) throw new Error(`Row ${line}: Weblink must be a full http:// or https:// URL.`);
+     if (!validUrl(directions)) throw new Error(`Row ${line}: Map must be a full http:// or https:// URL.`);
+
+     return {
+       businessId,
+       name,
+       category,
+       phone: get(row, "Phone"),
+       booking,
+       directions,
+       artworkFilename: get(row, "Artwork Filename") || businessId,
+       artworkHasName: ["yes", "true", "1"].includes(get(row, "Artwork Has Name").toLowerCase()),
+     };
+   });
+ }
  async function unpackZip(zip:File|null){if(!zip)return new Map<string,File>();if(zip.size>35*1024*1024)throw new Error('ZIP exceeds 35 MB.');const z=await JSZip.loadAsync(zip);const entries=Object.values(z.files).filter(f=>!f.dir&&!f.name.startsWith('__MACOSX/')&&!f.name.split('/').pop()?.startsWith('.'));if(entries.length>100)throw new Error('Maximum 100 images per ZIP.');const map=new Map<string,File>();const warnings:string[]=[];for(const entry of entries){const filename=entry.name.split('/').pop()||'';const ext=filename.split('.').pop()?.toLowerCase();const mime=ext==='jpg'||ext==='jpeg'?'image/jpeg':ext==='png'?'image/png':ext==='webp'?'image/webp':'';if(!mime){warnings.push(`${filename}: unsupported file`);continue}const bytes=await entry.async('uint8array');if(bytes.length>5*1024*1024){warnings.push(`${filename}: exceeds 5 MB`);continue}const key=fileKey(filename);if(map.has(key))throw new Error(`Duplicate ZIP filename: ${filename}`);map.set(key,new File([Uint8Array.from(bytes)],filename,{type:mime}))}setArtworkWarnings(warnings);return map}
  async function applySheet(existing:Listing[],rows:ImportRow[],zip:File|null){const uploads=await unpackZip(zip);const byId=new Map(existing.filter(x=>x.businessId).map(x=>[x.businessId!.toLowerCase(),x]));const byName=new Map(existing.filter(x=>!x.businessId).map(x=>[normalizedName(x.name),x]));const used=new Set<string>();const updated:Listing[]=[];for(const row of rows){const prior=byId.get(row.businessId.toLowerCase())||byName.get(normalizedName(row.name));if(prior)used.add(prior.id);const key=fileKey(row.artworkFilename);const file=key.includes('.')?uploads.get(key):['.webp','.jpg','.jpeg','.png'].map(ext=>uploads.get(key+ext)).find(Boolean);const image=file?await optimizeImage(file):prior?.image||'';if(!image)throw new Error(`${row.name} (${row.businessId}) has no matching artwork. Upload its image in the ZIP.`);updated.push({id:prior?.id||makeId(),businessId:row.businessId,name:row.name,category:row.category,phone:row.phone,booking:row.booking,directions:row.directions,artworkFilename:row.artworkFilename,artworkHasName:row.artworkHasName,image})}
   // Existing postcards absent from a replacement sheet are retained; new sheet order does not overwrite a user's drag order.
@@ -238,7 +305,7 @@ export default function AdminPage(){
 
  {modal&&<div role='dialog' aria-modal='true' aria-label={modal==='add'?'Add property':'Reimport property'} style={{position:'fixed',inset:0,zIndex:10010,background:'#000c',display:'grid',placeItems:'center',padding:16,overflowY:'auto'}}><section style={{...panel,width:'100%',maxWidth:520,maxHeight:'90vh',overflowY:'auto'}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}><h2 style={{fontFamily:'Georgia,serif',fontWeight:400,fontSize:26,margin:'0 0 20px'}}>{modal==='add'?'Add Property':'Update Property'}</h2><button style={secondary} onClick={()=>setModal(null)}>✕</button></div>
  {modal==='add'&&<><label style={label}>PROPERTY NAME</label><input style={{...field,marginBottom:16}} value={propertyName} onChange={e=>setPropertyName(e.target.value)} placeholder='e.g. Puente Romano'/><label style={label}>LOCATION</label><input style={{...field,marginBottom:16}} value={propertyLocation} onChange={e=>setPropertyLocation(e.target.value)} placeholder='e.g. Marbella, Spain'/></>}
- <label style={label}>GOOGLE SHEETS PUBLISHED CSV LINK</label><input style={{...field,marginBottom:16}} type='url' value={sheetLink} onChange={e=>setSheetLink(e.target.value)} placeholder='https://docs.google.com/spreadsheets/...'/><label style={label}>ARTWORK ZIP {modal==='sync'?'(OPTIONAL — EXISTING ARTWORK IS PRESERVED)':''}</label><input style={{...field,marginBottom:12}} type='file' accept='.zip,application/zip' onChange={e=>setZipFile(e.target.files?.[0]||null)}/><p style={{fontSize:12,color:'#aaa',lineHeight:1.6}}>Match artwork filenames to Business ID (5501.webp, 5502.jpg). JPG, PNG or WebP, max 5 MB each, max 100 images per ZIP. Artwork is converted to 1080 × 1920 without cropping or stretching.</p>
+ <label style={label}>GOOGLE SHEETS PUBLISHED CSV LINK</label><input style={{...field,marginBottom:16}} type='url' value={sheetLink} onChange={e=>setSheetLink(e.target.value)} placeholder='https://docs.google.com/spreadsheets/...'/><label style={label}>ARTWORK ZIP {modal==='sync'?'(OPTIONAL — EXISTING ARTWORK IS PRESERVED)':''}</label><input style={{...field,marginBottom:12}} type='file' accept='.zip,application/zip' onChange={e=>setZipFile(e.target.files?.[0]||null)}/><p style={{fontSize:12,color:'#aaa',lineHeight:1.6}}>Match artwork filenames to the ID column (5501.webp, 5502.jpg). JPG, PNG or WebP, max 5 MB each, max 100 images per ZIP. Artwork is converted to 1080 × 1920 without cropping or stretching.</p>
  {modal==='add'&&<><label style={label}>PUBLISHING</label><label style={{display:'block',marginBottom:10,fontSize:13}}><input type='radio' checked={!newPublished} onChange={()=>{setNewPublished(false);setNewDemo(false)}}/> Dormant — unpublished</label><label style={{display:'block',marginBottom:10,fontSize:13}}><input type='radio' checked={newPublished} onChange={()=>setNewPublished(true)}/> Live — publish hotel URL and QR</label>{newPublished&&<label style={{display:'block',marginBottom:14,fontSize:13}}><input type='checkbox' checked={newDemo} onChange={e=>setNewDemo(e.target.checked)}/> Add to public demo gallery</label>}</>}
  {notice&&<p role='alert' style={{color:'#e5b994',fontSize:12}}>{notice}</p>}{artworkWarnings.length>0&&<p style={{color:'#e5b994',fontSize:12}}>{artworkWarnings.join(' · ')}</p>}
  <div style={{display:'flex',gap:9,flexWrap:'wrap',marginTop:20}}><button style={button} disabled={busy||status==='conflict'} onClick={()=>void(modal==='add'?createProperty():syncProperty())}>{busy?'PROCESSING…':modal==='add'?'CREATE PROPERTY':'REIMPORT & UPDATE'}</button><button style={secondary} disabled={busy} onClick={()=>setModal(null)}>CANCEL</button></div></section></div>}
