@@ -267,7 +267,7 @@
         }
       ],
       "mode": "live",
-      "published": false,
+      "published": true,
       "sheetLink": "https://docs.google.com/spreadsheets/d/e/2PACX-1vTwNVfe_TNbh9Qdhv1yFe9hYgJomVDE7CAQBZ45TgtB8oFcrUQpeLIuJ0qU7i8FDHPIyVNpVQsggwYf/pub?gid=521410992&single=true&output=csv"
     }
   ]
