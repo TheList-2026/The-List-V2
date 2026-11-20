@@ -6,16 +6,16 @@
       "location": "Marbella, Spain",
       "listings": [
         {
-          "id": "5501",
-          "name": "La Scala",
-          "description": "Contemporary italian dining",
+          "id": "5507",
+          "name": "Magna Super Cars",
+          "description": "Supercar & Luxury Vintage Hire",
           "category": "Curated destination",
-          "image": "/marbella/5501.webp",
-          "phone": "+34951569362",
-          "booking": "http://www.lascalamarbella.com/",
-          "directions": "https://maps.app.goo.gl/8j6vWkdg5PYvP9F47",
+          "image": "/marbella/5507.webp",
+          "phone": "+34951661126",
+          "booking": "https://www.magnasupercars.com/en/services/rentals/",
+          "directions": "https://maps.app.goo.gl/Kx1Xz6NoLNkAp8Z8A",
           "artworkHasName": false,
-          "artworkFilename": "5501.webp",
+          "artworkFilename": "5507.webp",
           "location": "Marbella · Costa del Sol"
         },
         {
@@ -58,6 +58,19 @@
           "location": "Marbella · Costa del Sol"
         },
         {
+          "id": "5501",
+          "name": "La Scala",
+          "description": "Contemporary italian dining",
+          "category": "Curated destination",
+          "image": "/marbella/5501.webp",
+          "phone": "+34951569362",
+          "booking": "http://www.lascalamarbella.com/",
+          "directions": "https://maps.app.goo.gl/8j6vWkdg5PYvP9F47",
+          "artworkHasName": false,
+          "artworkFilename": "5501.webp",
+          "location": "Marbella · Costa del Sol"
+        },
+        {
           "id": "5505",
           "name": "Marbella Old Town",
           "description": "Destination",
@@ -81,19 +94,6 @@
           "directions": "",
           "artworkHasName": false,
           "artworkFilename": "5506.webp",
-          "location": "Marbella · Costa del Sol"
-        },
-        {
-          "id": "5507",
-          "name": "Magna Super Cars",
-          "description": "Supercar & Luxury Vintage Hire",
-          "category": "Curated destination",
-          "image": "/marbella/5507.webp",
-          "phone": "+34951661126",
-          "booking": "https://www.magnasupercars.com/en/services/rentals/",
-          "directions": "https://maps.app.goo.gl/Kx1Xz6NoLNkAp8Z8A",
-          "artworkHasName": false,
-          "artworkFilename": "5507.webp",
           "location": "Marbella · Costa del Sol"
         },
         {
