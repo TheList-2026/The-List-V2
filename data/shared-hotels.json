@@ -276,18 +276,6 @@
       "location": "Antibes, France",
       "listings": [
         {
-          "id": "1795191160859-5i3ukfoejwm",
-          "businessId": "5701",
-          "name": "Eden-Roc Restaurant",
-          "category": "EXPERIENCES",
-          "phone": "+33 4 93 61 39 01",
-          "booking": "https://www.oetkercollection.com/hotels/hotel-du-cap-eden-roc/restaurants-bars/eden-roc-restaurant/",
-          "directions": "",
-          "artworkFilename": "5701",
-          "artworkHasName": false,
-          "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/8578d71f6162ba25b9ead956723bcc8d1e45b743a44b301db5d21a2be94ac40c.jpg"
-        },
-        {
           "id": "1795191160909-v1eba4kfn1",
           "businessId": "5702",
           "name": "Dior Spa Eden-Roc",
@@ -298,6 +286,18 @@
           "artworkFilename": "5702",
           "artworkHasName": false,
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/16e952db8e5ea7245e6bae304f70ca66c69df30cf703e283fdc1dd219bba89ee.jpg"
+        },
+        {
+          "id": "1795191160859-5i3ukfoejwm",
+          "businessId": "5701",
+          "name": "Eden-Roc Restaurant",
+          "category": "EXPERIENCES",
+          "phone": "+33 4 93 61 39 01",
+          "booking": "https://www.oetkercollection.com/hotels/hotel-du-cap-eden-roc/restaurants-bars/eden-roc-restaurant/",
+          "directions": "",
+          "artworkFilename": "5701",
+          "artworkHasName": false,
+          "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/8578d71f6162ba25b9ead956723bcc8d1e45b743a44b301db5d21a2be94ac40c.jpg"
         },
         {
           "id": "1795191160977-s1jztnwkbin",
