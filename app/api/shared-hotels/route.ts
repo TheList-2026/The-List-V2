@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 const OWNER = "TheList-2026";
 const REPO = "The-List-V2";
-const BRANCH = "admin-v3-test";
+const BRANCH = process.env.VERCEL_ENV === "production"   ? "main"   : "admin-v3-test";
 const FILE = "data/shared-hotels.json";
 
 const api = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE}?ref=${BRANCH}`;
