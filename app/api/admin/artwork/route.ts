@@ -7,11 +7,7 @@ export const runtime = "nodejs";
 
 const OWNER = "TheList-2026";
 const REPO = "The-List-V2";
-const BRANCH =
-  process.env.VERCEL_ENV === "production"
-    ? "main"
-    : "admin-v3-test";
-
+const BRANCH = "hotel-artwork-storage";
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
@@ -112,7 +108,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({
-      image: `/hotel-artwork/${hash}.jpg`,
+    image: `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${path}`,
     });
   } catch (error) {
     console.error("Artwork upload failed:", error);
@@ -122,4 +118,5 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+
 }
