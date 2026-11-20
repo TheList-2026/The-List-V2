@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ChangeEvent, type CSSProperties } from "react";
+import { useEffect, useState, useRef, type CSSProperties } from "react";
 import Link from "next/link";
 import JSZip from "jszip";
 
@@ -17,7 +17,7 @@ type Listing = {
   directions: string;
   artworkFilename?: string;
 };
-type Hotel = { id: string; name: string; location: string; listings: Listing[]; mode?: "demo" | "live"; published?: boolean };
+type Hotel = { id: string; name: string; location: string; listings: Listing[]; mode?: "demo" | "live"; published?: boolean; sheetLink?: string };
 type ImportRow = { businessId: string; name: string; category: Category; phone: string; booking: string; directions: string; artworkFilename: string; artworkHasName: boolean };
 function parseCSV(text: string): string[][] {
   const rows: string[][] = []; let row: string[] = []; let cell = ""; let quoted = false;
@@ -79,433 +79,144 @@ async function optimizeImage(file: File): Promise<string> {
 }
 
 
-const STORE = "the-list-admin-test-hotels-v2";
-const panel: CSSProperties = { background: "#202020", border: "1px solid #383838", borderRadius: 12, padding: 22 };
-const field: CSSProperties = { width: "100%", boxSizing: "border-box", background: "#141414", border: "1px solid #494949", borderRadius: 5, color: "#fff", padding: "12px", fontSize: 14 };
-const button: CSSProperties = { padding: "12px 16px", background: "#e7e0d5", color: "#171717", border: 0, borderRadius: 5, cursor: "pointer", fontSize: 12, letterSpacing: ".08em" };
-const secondary: CSSProperties = { ...button, background: "transparent", color: "#e7e0d5", border: "1px solid #777" };
-const label: CSSProperties = { display: "block", color: "#bbb", fontSize: 11, letterSpacing: ".12em", marginBottom: 7 };
-function slug(value: string) { return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
-function makeId() { return `${Date.now()}-${Math.random().toString(36).slice(2)}`; }
-function validUrl(value: string) { if (!value.trim()) return true; try { const url = new URL(value); return url.protocol === "https:" || url.protocol === "http:"; } catch { return false; } }
 
-export default function AdminPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [activity, setActivity] = useState<{author:string; date:string; message:string}[]>([]);
-  const [artworkWarnings, setArtworkWarnings] = useState<string[]>([]);
-  const [approved, setApproved] = useState(false);
-  const [error, setError] = useState("");
-  const [ready, setReady] = useState(false);
-  const [hotels, setHotels] = useState<Hotel[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [hotelName, setHotelName] = useState("");
-  const [location, setLocation] = useState("");
-  const [name, setName] = useState("");
-  const [category, setCategory] = useState<Category>("DINING");
-  const [image, setImage] = useState("");
-  const [artworkHasName, setArtworkHasName] = useState(false);
-  const [phone, setPhone] = useState("");
-  const [booking, setBooking] = useState("");
-  const [directions, setDirections] = useState("");
-  const [preview, setPreview] = useState(false);
-  const [openPreviewCard, setOpenPreviewCard] = useState<string | null>(null);
-  const [notice, setNotice] = useState("");
-  const [sharedSha, setSharedSha] = useState<string | null>(null);
-  const [sharedBusy, setSharedBusy] = useState(false);
-  const [sharedLoaded, setSharedLoaded] = useState(false);
-  const [importRows, setImportRows] = useState<ImportRow[] | null>(null);
-  const [sheetLink, setSheetLink] = useState("");
-  const [sheetBusy, setSheetBusy] = useState(false);
-  const [importFiles, setImportFiles] = useState<File[]>([]);
-  const [importHotelId, setImportHotelId] = useState<string | null>(null);
-  const [removeMissing, setRemoveMissing] = useState(false);
-  const [importBusy, setImportBusy] = useState(false);
-  const [emailBusy, setEmailBusy] = useState(false);
-  const [qrBusy, setQrBusy] = useState(false);
+const panel: CSSProperties = {background:'#202020',border:'1px solid #393939',borderRadius:13,padding:20};
+const field: CSSProperties = {width:'100%',boxSizing:'border-box',background:'#151515',border:'1px solid #4a4a4a',borderRadius:7,color:'#f4efe8',padding:'12px',fontSize:14};
+const button: CSSProperties = {padding:'12px 17px',background:'#e8dfd2',color:'#171717',border:0,borderRadius:7,cursor:'pointer',fontSize:12,letterSpacing:'.06em'};
+const secondary: CSSProperties = {...button,background:'#292929',color:'#e8dfd2',border:'1px solid #555'};
+const label: CSSProperties = {display:'block',fontSize:11,letterSpacing:'.12em',color:'#c9c1b7',marginBottom:7};
+function slug(v:string){return v.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');}
+function makeId(){return `${Date.now()}-${Math.random().toString(36).slice(2)}`;}
+function validUrl(v:string){if(!v.trim())return true;try{const u=new URL(v);return u.protocol==='https:'||u.protocol==='http:'}catch{return false}}
+function reorder<T>(items:T[],from:number,to:number):T[]{const next=[...items];if(from<0||to<0||from>=next.length||to>=next.length)return next;const [m]=next.splice(from,1);next.splice(to,0,m);return next;}
+type SaveStatus='loading'|'saved'|'saving'|'pending'|'conflict'|'error';
+export default function AdminPage(){
+ const [email,setEmail]=useState(''); const [password,setPassword]=useState('');const [approved,setApproved]=useState(false);const [authError,setAuthError]=useState('');
+ const [hotels,setHotels]=useState<Hotel[]>([]);const [activeId,setActiveId]=useState<string|null>(null);const [selectedCard,setSelectedCard]=useState<string|null>(null);
+ const [status,setStatus]=useState<SaveStatus>('loading');const [notice,setNotice]=useState('');const [modal,setModal]=useState<'add'|'sync'|null>(null);
+ const [propertyName,setPropertyName]=useState('');const [propertyLocation,setPropertyLocation]=useState('');const [sheetLink,setSheetLink]=useState('');const [zipFile,setZipFile]=useState<File|null>(null);
+ const [newPublished,setNewPublished]=useState(false);const [newDemo,setNewDemo]=useState(false);const [busy,setBusy]=useState(false);const [artworkWarnings,setArtworkWarnings]=useState<string[]>([]);
+ const [preview,setPreview]=useState(false);const [openPreviewCard,setOpenPreviewCard]=useState<string|null>(null);const [qrBusy,setQrBusy]=useState(false);const [emailBusy,setEmailBusy]=useState(false);
+ const [dragIndex,setDragIndex]=useState<number|null>(null);const [dragOver,setDragOver]=useState<number|null>(null);
+ const hotelsRef=useRef<Hotel[]>([]);const shaRef=useRef<string|null>(null);const dirtyRef=useRef(false);const savingRef=useRef(false);const readyRef=useRef(false);const approvedRef=useRef(false);const activeRef=useRef<string|null>(null);
+ const active=hotels.find(h=>h.id===activeId);const selected=active?.listings.find(x=>x.id===selectedCard)||active?.listings[0];
+ function showHotels(next:Hotel[]){hotelsRef.current=next;setHotels(next)}
+ function editHotels(fn:(prev:Hotel[])=>Hotel[]){const next=fn(hotelsRef.current);showHotels(next);dirtyRef.current=true;setStatus('pending')}
+ function editActive(fn:(h:Hotel)=>Hotel){if(!activeRef.current)return;editHotels(prev=>prev.map(h=>h.id===activeRef.current?fn(h):h))}
+ function selectHotel(id:string){activeRef.current=id;setActiveId(id);setSelectedCard(null);setNotice('')}
+ async function loadShared(initial=false){
+  if(!approvedRef.current)return;
+  try{const r=await fetch('/api/shared-hotels',{cache:'no-store'});const data=await r.json();if(!r.ok)throw new Error(data.error||'Cannot load shared properties');
+   if(dirtyRef.current||savingRef.current)return;
+   if(initial||data.sha!==shaRef.current){shaRef.current=data.sha||null;showHotels(Array.isArray(data.hotels)?data.hotels:[]);if(initial){readyRef.current=true;setStatus('saved')} }
+  }catch(e){if(initial){readyRef.current=false;setStatus('error')}setNotice(e instanceof Error?e.message:'Unable to sync properties')}
+ }
+ async function saveShared(){
+  if(!approvedRef.current||!readyRef.current||!dirtyRef.current||savingRef.current)return;
+  savingRef.current=true;setStatus('saving');const snapshot=hotelsRef.current;
+  try{const r=await fetch('/api/shared-hotels',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({hotels:snapshot,sha:shaRef.current})});const d=await r.json();
+   if(r.status===409){setStatus('conflict');setNotice('Another administrator saved first. Your changes are still on this screen. Do not refresh; resolve the conflict before continuing.');return}
+   if(!r.ok)throw new Error(d.error||'Shared save failed');
+   shaRef.current=d.sha||null;
+   if(hotelsRef.current===snapshot){dirtyRef.current=false;setStatus('saved')}else{setStatus('pending')}
+  }catch(e){setStatus('error');setNotice(e instanceof Error?e.message:'Save failed. Your changes remain on this screen.')}
+  finally{savingRef.current=false}
+ }
+ useEffect(()=>{let mounted=true;fetch('/api/admin/session',{cache:'no-store'}).then(r=>r.json()).then(d=>{if(mounted&&d.authenticated){approvedRef.current=true;setApproved(true)}}).catch(()=>{});return()=>{mounted=false}},[]);
+ useEffect(()=>{if(!approved)return;approvedRef.current=true;void loadShared(true);const timer=setInterval(()=>{if(!dirtyRef.current&&!savingRef.current)void loadShared(false)},5000);return()=>clearInterval(timer)},[approved]);
+ useEffect(()=>{if(!approved)return;const timer=setInterval(()=>{if(dirtyRef.current&&!savingRef.current&&status!=='conflict')void saveShared()},1800);return()=>clearInterval(timer)},[approved,status]);
+ async function login(e:React.FormEvent<HTMLFormElement>){e.preventDefault();try{const r=await fetch('/api/admin/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Unable to sign in.');approvedRef.current=true;setApproved(true);setPassword('');setAuthError('')}catch(e){setAuthError(e instanceof Error?e.message:'Login failed.')}}
+ async function signOut(){await fetch('/api/admin/session',{method:'DELETE'});approvedRef.current=false;readyRef.current=false;setApproved(false);showHotels([]);selectHotel('')}
+ async function readSheet(link: string): Promise<ImportRow[]> {
+   const response = await fetch(`/api/admin/google-sheet?url=${encodeURIComponent(link.trim())}`, { cache: "no-store" });
+   const data = await response.json();
+   if (!response.ok || typeof data.csv !== "string") throw new Error(data.error || "Cannot read Google Sheet");
 
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORE);
-      if (saved) {
-        const parsed: unknown = JSON.parse(saved);
-        if (Array.isArray(parsed)) setHotels(parsed as Hotel[]);
-      }
-    } catch { /* Browser storage may be unavailable */ }
-    fetch("/api/admin/session", {cache:"no-store"}).then(r=>r.json()).then(d=>{if(d.authenticated) setApproved(true)}).catch(()=>{});
-    setReady(true);
-  }, []);
-  useEffect(() => {
-    if (!ready) return;
-    try { localStorage.setItem(STORE, JSON.stringify(hotels)); }
-    catch { setNotice("Browser storage is full. Try smaller images; your latest changes may not be saved."); }
-  }, [hotels, ready]);
+   const matrix = parseCSV(data.csv);
+   if (matrix.length < 2) throw new Error("Sheet must contain a header and at least one business.");
 
-  const active = hotels.find(h => h.id === activeId);
-  async function login(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    try {
-      const r = await fetch("/api/admin/session", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})});
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error || "Unable to sign in.");
-      setApproved(true); setPassword(""); setError("");
-      await refreshActivity();
-    } catch(e) {setError(e instanceof Error ? e.message : "Login failed.");}
-  }
-  async function signOut() {
-    await fetch("/api/admin/session", {method:"DELETE"});
-    setApproved(false); setActiveId(null); setPreview(false);
-  }
-  async function refreshActivity() {
-    try {
-      const r = await fetch("/api/admin/activity",{cache:"no-store"});
-      if(r.ok) { const d = await r.json(); setActivity(d.activity || []); }
-    } catch { /* history temporarily unavailable */ }
-  }
-  async function uploadZip(event: ChangeEvent<HTMLInputElement>) {
-    const file=event.target.files?.[0]; if(!file) return;
-    setArtworkWarnings([]);
-    if(file.size > 35*1024*1024){setArtworkWarnings(["ZIP exceeds 35 MB. Split the artwork into smaller ZIP files."]);return;}
-    try {
-      const zip=await JSZip.loadAsync(file);
-      const entries=Object.values(zip.files).filter(f=>!f.dir && !f.name.startsWith("__MACOSX/") && !f.name.split("/").pop()?.startsWith("."));
-      if(entries.length>100) throw new Error("Maximum 100 images per ZIP.");
-      const accepted:File[]=[]; const warnings:string[]=[];
-      for(const entry of entries){
-        const filename=entry.name.split("/").pop() || "";
-        const ext=filename.split(".").pop()?.toLowerCase();
-        const mime=ext==="jpg"||ext==="jpeg"?"image/jpeg":ext==="png"?"image/png":ext==="webp"?"image/webp":"";
-        if(!mime){warnings.push(`${filename}: unsupported format; use JPG, PNG or WebP.`);continue;}
-        const bytes=await entry.async("uint8array");
-        if(bytes.byteLength>5*1024*1024){warnings.push(`${filename}: over 5 MB; skipped.`);continue;}
-        const imageFile=new File([Uint8Array.from(bytes)],filename,{type:mime});
-        const url=URL.createObjectURL(imageFile);
-        try {
-          const dimensions=await new Promise<{width:number;height:number}>((resolve,reject)=>{
-            const image=new Image(); image.onload=()=>resolve({width:image.naturalWidth,height:image.naturalHeight}); image.onerror=()=>reject(new Error("Unreadable image")); image.src=url;
-          });
-          if(dimensions.width!==1080||dimensions.height!==1920) warnings.push(`${filename}: ${dimensions.width} × ${dimensions.height} (required 1080 × 1920). Will convert without stretching when changes are applied.`);
-          accepted.push(imageFile);
-        }catch{warnings.push(`${filename}: invalid or unreadable image; skipped.`)}finally{URL.revokeObjectURL(url)}
-      }
-      const names=new Set<string>();
-      for(const f of accepted){const key=fileKey(f.name);if(names.has(key))warnings.push(`${f.name}: duplicate filename in ZIP.`);names.add(key)}
-      setImportFiles(accepted); setArtworkWarnings(warnings);
-      setNotice(`${accepted.length} image(s) loaded from ZIP. ${warnings.length} warning(s). Review before applying changes.`);
-    }catch(e){setArtworkWarnings([e instanceof Error?e.message:"Unable to open ZIP."]);setImportFiles([])}
-  }
-  async function loadShared() {
-    if (sharedBusy) return;
-    setSharedBusy(true);
-    try {
-      const response = await fetch("/api/shared-hotels", { cache: "no-store" });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Unable to load shared hotels.");
-      const remote: Hotel[] = Array.isArray(data.hotels) ? data.hotels : [];
-      if (hotels.length && !sharedLoaded &&
-          !window.confirm("Replace the hotels currently shown on this device with the shared hotels? Your local test hotels may differ. Cancel to keep your local hotels, then use Save to shared.")) return;
-      setHotels(remote);
-      setActiveId(null);
-      setPreview(false);
-      setSharedSha(data.sha || null);
-      setSharedLoaded(true);
-      setNotice(`Loaded ${remote.length} hotel(s) from shared storage.`);
-      await refreshActivity();
-    } catch (e) { setNotice(e instanceof Error ? e.message : "Shared load failed."); }
-    finally { setSharedBusy(false); }
-  }
+   // Accept the original template and the simpler nine-column business sheet.
+   // Normalisation ignores spaces, punctuation and capitalisation in headings.
+   const headers = matrix[0].map(normalizedName);
+   const column = (...names: string[]) => names.map(name => headers.indexOf(normalizedName(name))).find(index => index >= 0) ?? -1;
+   const get = (row: string[], ...names: string[]) => {
+     const index = column(...names);
+     return index < 0 ? "" : (row[index] || "").trim();
+   };
 
-  async function saveShared() {
-    if (sharedBusy) return;
-    if (!sharedLoaded) { setNotice("Load shared hotels first, then save. This protects your partner’s changes."); return; }
-    if (!window.confirm("Save the hotels currently shown here for both administrators? This replaces the current shared hotel list.")) return;
-    setSharedBusy(true);
-    try {
-      const response = await fetch("/api/shared-hotels", {
-        method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hotels, sha: sharedSha }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Unable to save shared hotels.");
-      setSharedSha(data.sha);
-      setSharedLoaded(true);
-      setNotice("Saved online. Published demos are now listed on Explore Our Demos. Your partner can click LOAD SHARED HOTELS to see the changes.");
-      await refreshActivity();
-    } catch (e) { setNotice(e instanceof Error ? e.message : "Shared save failed."); }
-    finally { setSharedBusy(false); }
-  }
+   for (const [description, names] of [
+     ["ID", ["ID", "Business ID"]],
+     ["Business name", ["Business name", "Business Name"]],
+     ["Type", ["Type", "Category"]],
+   ] as const) {
+     if (column(...names) < 0) throw new Error(`Missing Google Sheet column: ${description}`);
+   }
 
+   const seen = new Set<string>();
+   return matrix.slice(1).map((row, index) => {
+     const line = index + 2;
+     const businessId = get(row, "ID", "Business ID");
+     const name = get(row, "Business name", "Business Name");
+     const rawType = get(row, "Type", "Category").toLowerCase().trim();
+     const description = get(row, "Description").toLowerCase();
 
-  async function readGoogleSheet() {
-    if (!active || sheetBusy) return;
-    setSheetBusy(true);
-    try {
-      const response = await fetch(`/api/admin/google-sheet?url=${encodeURIComponent(sheetLink.trim())}`, { cache: "no-store" });
-      const data: { csv?: string; error?: string } = await response.json();
-      if (!response.ok || typeof data.csv !== "string") throw new Error(data.error || "Unable to read Google Sheet.");
-      const matrix = parseCSV(data.csv);
-      if (matrix.length < 2) throw new Error("Google Sheet needs a header and at least one business.");
-      const headers = matrix[0].map(x => x.toLowerCase().replace(/[^a-z0-9]/g, ""));
-      const col = (name: string) => headers.indexOf(name);
-      for (const required of ["businessid", "businessname", "category"])
-        if (col(required) < 0) throw new Error(`Missing Google Sheet column: ${required}.`);
-      const get = (r: string[], key: string) => (r[col(key)] || "").trim();
-      const seenIds = new Set<string>();
-      const parsed: ImportRow[] = matrix.slice(1).map((r, index) => {
-        const businessId = get(r, "businessid");
-        const name = get(r, "businessname");
-        const rawCategory = get(r, "category").toUpperCase();
-        if (!businessId || !/^[a-zA-Z0-9_-]+$/.test(businessId)) throw new Error(`Row ${index + 2}: Business ID is missing or invalid (use letters, numbers, _ or -).`);
-        if (seenIds.has(businessId.toLowerCase())) throw new Error(`Duplicate Business ID: ${businessId}.`);
-        seenIds.add(businessId.toLowerCase());
-        if (!name) throw new Error(`Row ${index + 2}: business name missing.`);
-        if (!["DINING", "SHOPPING", "EXPERIENCES"].includes(rawCategory)) throw new Error(`Row ${index + 2}: category must be DINING, SHOPPING or EXPERIENCES.`);
-        const booking = get(r, "bookingurl"), directions = get(r, "directionsurl");
-        if (![booking, directions].every(validUrl)) throw new Error(`Row ${index + 2}: links must begin https:// or http://.`);
-        const artworkFilename = get(r, "artworkfilename") || `${businessId}`;
-        return { businessId, name, category: rawCategory as Category, phone: get(r, "phone"), booking, directions, artworkFilename, artworkHasName: ["yes", "true", "1"].includes(get(r, "artworkhasname").toLowerCase()) };
-      });
-      setImportRows(parsed);
-      setImportHotelId(active.id);
-      setImportFiles([]);
-      setArtworkWarnings([]);
-      setRemoveMissing(false);
-      setNotice(`Google Sheet checked: ${parsed.length} businesses. Upload artwork ZIP if needed, then review changes.`);
-    } catch (e) {
-      setImportRows(null);
-      setNotice(e instanceof Error ? e.message : "Cannot read Google Sheet.");
-    } finally { setSheetBusy(false); }
-  }
+     if (!businessId || !/^[a-zA-Z0-9_-]+$/.test(businessId)) throw new Error(`Row ${line}: ID must contain only letters, numbers, underscores or hyphens.`);
+     if (seen.has(businessId.toLowerCase())) throw new Error(`Row ${line}: duplicate ID ${businessId}.`);
+     seen.add(businessId.toLowerCase());
+     if (!name) throw new Error(`Row ${line}: missing Business name.`);
 
-  async function applyImport() {
-    if (!active || !importRows || importHotelId !== active.id || importBusy) return;
-    setImportBusy(true);
-    try {
-      const existingById = new Map(active.listings.filter(item => item.businessId).map(item => [item.businessId!.toLowerCase(), item]));
-      const legacyByName = new Map(active.listings.filter(item => !item.businessId).map(item => [normalizedName(item.name), item]));
-      const uploads = new Map<string, File>();
-      for (const f of importFiles) {
-        const key = fileKey(f.name);
-        if (uploads.has(key)) throw new Error(`Duplicate artwork filename: ${f.name}`);
-        uploads.set(key, f);
-      }
-      const findFile = (row: ImportRow): File | undefined => {
-        const requested = fileKey(row.artworkFilename);
-        if (requested.includes(".")) return uploads.get(requested);
-        return [".webp", ".jpg", ".jpeg", ".png"].map(ext => uploads.get(`${requested}${ext}`)).find(Boolean);
-      };
-      const images = new Map<string, string>();
-      for (const row of importRows) {
-        const file = findFile(row);
-        if (file) images.set(row.businessId.toLowerCase(), await optimizeImage(file));
-      }
-      const matchedExistingIds = new Set<string>();
-      const updated: Listing[] = importRows.map(row => {
-        const previous = existingById.get(row.businessId.toLowerCase()) || legacyByName.get(normalizedName(row.name));
-        if (previous) matchedExistingIds.add(previous.id);
-        return {
-          id: previous?.id || makeId(), businessId: row.businessId,
-          name: row.name, category: row.category, phone: row.phone,
-          booking: row.booking, directions: row.directions,
-          artworkHasName: row.artworkHasName, artworkFilename: row.artworkFilename,
-          image: images.get(row.businessId.toLowerCase()) || previous?.image || "",
-        };
-      });
-      const retained = removeMissing ? [] : active.listings.filter(item => !matchedExistingIds.has(item.id));
-      setHotels(prev => prev.map(h => h.id === active.id ? { ...h, listings: [...updated, ...retained] } : h));
-      setImportRows(null); setImportFiles([]); setImportHotelId(null); setRemoveMissing(false);
-      setNotice(`Google Sheet applied to ${active.name}: ${updated.length} imported, ${retained.length} existing retained. Review postcards, then SAVE TO SHARED.`);
-    } catch (e) { setNotice(e instanceof Error ? e.message : "Import failed."); }
-    finally { setImportBusy(false); }
-  }
+     let category: Category;
+     if (["dining", "restaurant", "restaurants", "food", "cafe", "café", "bar", "fine dining"].includes(rawType)) category = "DINING";
+     else if (["shopping", "retail", "shop", "shops", "fashion", "boutique", "luxury retail", "store"].includes(rawType)) category = "SHOPPING";
+     else if (["experiences", "experience", "activity", "activities", "spa", "wellness", "attraction"].includes(rawType)) category = "EXPERIENCES";
+     else if (["advertiser", "featured", "business"].includes(rawType)) {
+       // Some existing sheets use Type for advertiser status rather than category.
+       // Use the supplied description to classify those rows where possible.
+       if (/boutique|fashion|jewel|retail|shopping|designer|clothing|watch store/.test(description)) category = "SHOPPING";
+       else if (/spa|wellness|excursion|tour|experience|activity/.test(description)) category = "EXPERIENCES";
+       else if (/restaurant|dining|cafe|café|bistro|italian|french|steak|sushi|seafood|cocktail|bar|cuisine/.test(description)) category = "DINING";
+       else throw new Error(`Row ${line}: Type is '${rawType}'. Set Type to Restaurant, Shopping or Experiences so the postcard category is clear.`);
+     } else throw new Error(`Row ${line}: unrecognised Type '${rawType}'. Use Restaurant, Shopping or Experiences.`);
 
-  function createHotel() {
-    const cleanName = hotelName.trim();
-    if (!cleanName || !location.trim()) { setNotice("Enter a hotel name and location."); return; }
-    const hotelSlug = slug(cleanName);
-    if (!hotelSlug) { setNotice("Use a hotel name containing letters or numbers."); return; }
-    if (hotels.some(h => h.id === hotelSlug || slug(h.name) === hotelSlug)) { setNotice("A hotel with that URL already exists."); return; }
-    const hotel: Hotel = { id: hotelSlug, name: cleanName, location: location.trim(), listings: [], mode: "demo", published: false };
-    setHotels(prev => [...prev, hotel]); setActiveId(hotel.id); setHotelName(""); setLocation(""); setNotice("Test hotel created. Add its first postcard below.");
-  }
-  function updateHotel(fn: (hotel: Hotel) => Hotel) {
-    setHotels(prev => prev.map(h => h.id === activeId ? fn(h) : h));
-  }
-  async function uploadArtwork(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    try {
-      const optimized = await optimizeImage(file);
-      setImage(optimized);
-      setNotice("Artwork ready: automatically converted to 1080 × 1920 (9:16) without stretching or cropping.");
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Unable to process artwork.");
-    }
-    event.target.value = "";
-  }
-  function addPostcard() {
-    if (!active || !name.trim() || !image) { setNotice("Enter the business name and upload its artwork."); return; }
-    if (![booking, directions].every(validUrl)) { setNotice("Booking and Maps links must start with https:// or http://."); return; }
-    const item: Listing = { id: makeId(), name: name.trim(), category, image, artworkHasName, phone: phone.trim(), booking: booking.trim(), directions: directions.trim() };
-    updateHotel(h => ({ ...h, listings: [...h.listings, item] }));
-    setName(""); setImage(""); setPhone(""); setBooking(""); setDirections(""); setArtworkHasName(false);
-    setNotice("Postcard added and saved in this browser.");
-  }
-  function movePostcard(index: number, change: number) {
-    updateHotel(h => {
-      const next = [...h.listings]; const target = index + change;
-      if (target < 0 || target >= next.length) return h;
-      [next[index], next[target]] = [next[target], next[index]];
-      return { ...h, listings: next };
-    });
-  }
-  function removePostcard(id: string) {
-    updateHotel(h => ({ ...h, listings: h.listings.filter(item => item.id !== id) }));
-  }
-  function removeHotel() {
-    if (!active || !window.confirm(`Delete the test hotel "${active.name}"?`)) return;
-    setHotels(prev => prev.filter(h => h.id !== activeId)); setActiveId(null); setPreview(false);
-  }
-  async function downloadQr(hotel: Hotel) {
-    setQrBusy(true);
-    try {
-      const response = await fetch(`/api/admin/qr?hotelId=${encodeURIComponent(hotel.id)}`, {cache:"no-store"});
-      if (!response.ok) { const data = await response.json(); throw new Error(data.error || "QR unavailable"); }
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a"); link.href = url; link.download = `the-list-${hotel.id}-qr.png`; link.click();
-      URL.revokeObjectURL(url);
-      setNotice("QR code downloaded. Test the code with a phone before printing.");
-    } catch(e) { setNotice(e instanceof Error ? e.message : "QR download failed"); }
-    finally {setQrBusy(false);}
-  }
-  async function emailQr(hotel: Hotel) {
-    if (!window.confirm(`Email the QR code for ${hotel.name} to Ben@thelist.studio and Projects@thelist.studio?`)) return;
-    setEmailBusy(true);
-    try {
-      const response = await fetch("/api/admin/send-qr", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({hotelId:hotel.id})});
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Email could not be sent");
-      setNotice("QR email accepted for delivery to both administrators.");
-    } catch(e) { setNotice(e instanceof Error ? e.message : "Email failed"); }
-    finally {setEmailBusy(false);}
-  }
-  const input = (value: string, onChange: (value: string) => void, placeholder = "") => (
-    <input style={field} value={value} placeholder={placeholder} onChange={e => onChange(e.target.value)} />
-  );
-  return (
-    <main style={{ minHeight: "100vh", width: "100%", maxWidth: "100%", minWidth: 0, overflowX: "clip", background: "#151515", color: "#f5f1eb", padding: "32px 18px 80px", fontFamily: "Arial, Helvetica, sans-serif" }}>
-      <div style={{ width: "100%", maxWidth: 1100, minWidth: 0, margin: "0 auto" }}>
-        <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap", borderBottom: "1px solid #373737", paddingBottom: 22, marginBottom: 28 }}>
-          <div><div style={{ fontFamily: "Georgia, serif", fontSize: 30, letterSpacing: ".22em" }}>THE LIST</div><div style={{ color: "#aaa", fontSize: 10, letterSpacing: ".2em", marginTop: 9 }}>HOTEL MANAGEMENT · SHARED WORKSPACE</div></div>
-          {approved && <button type="button" style={secondary} onClick={signOut}>SIGN OUT</button>}
-        </header>
-        {!approved ? (
-          <section style={{ ...panel, maxWidth: 420, margin: "70px auto" }}>
-            <h1 style={{ fontFamily: "Georgia, serif", fontWeight: 400, fontSize: 29 }}>Welcome back.</h1>
-            <p style={{ color: "#aaa", fontSize: 13, lineHeight: 1.7 }}>Private management for authorised partners. Sign in with your own credentials.</p>
-            <form onSubmit={login}><label style={label} htmlFor="admin-email">EMAIL</label><input id="admin-email" type="email" required style={{ ...field, marginBottom: 16 }} value={email} onChange={e => setEmail(e.target.value)} placeholder="Email address" /><label style={label}>PASSWORD</label><input type="password" required autoComplete="current-password" style={{ ...field, marginBottom: 16 }} value={password} onChange={e => setPassword(e.target.value)} />{error && <p style={{ color: "#eaa", fontSize: 13 }}>{error}</p>}<button type="submit" style={{ ...button, width: "100%" }}>ENTER DASHBOARD →</button></form>
-          </section>
-        ) : (
-          <>
-            <h1 style={{ fontFamily: "Georgia, serif", fontWeight: 400, fontSize: 36, marginBottom: 8 }}>Your hotels</h1>
-            <section style={{ ...panel, marginBottom: 20 }}>
-              <h2 style={{ fontSize: 17, marginTop: 0 }}>Shared hotel workspace</h2>
-              <p style={{ color: "#bbb", fontSize: 13, lineHeight: 1.6 }}>Click LOAD to see the online hotel list. After making changes, click SAVE to share them. On another device, click LOAD again. Your existing browser-only hotels are preserved until you choose to replace them.</p>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <button type="button" disabled={sharedBusy || !ready} style={secondary} onClick={loadShared}>{sharedBusy ? "WORKING…" : "LOAD SHARED HOTELS"}</button>
-                <button type="button" disabled={sharedBusy || !ready} style={button} onClick={saveShared}>{sharedBusy ? "WORKING…" : "SAVE TO SHARED"}</button>
-              </div>
-            </section>
-            <section style={{...panel,marginBottom:20}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}><h2 style={{fontSize:17,margin:0}}>Recent shared activity</h2><button type="button" style={secondary} onClick={refreshActivity}>REFRESH</button></div><p style={{color:"#aaa",fontSize:12}}>Changes published by either partner appear here. Unsaved local edits are not shared.</p>{activity.length ? activity.map((a,i)=><p key={i} style={{fontSize:12,borderTop:"1px solid #393939",paddingTop:9}}><strong>{a.author}</strong> · {new Date(a.date).toLocaleString()}<br/><span style={{color:"#aaa"}}>{a.message}</span></p>) : <p style={{color:"#aaa",fontSize:12}}>No activity loaded yet.</p>}</section>
-            <p style={{ color: "#aaa", fontSize: 13, lineHeight: 1.7, marginBottom: 24 }}>Create and preview hotels here. Changes stay on this device until you click SAVE TO SHARED. The shared workspace is separate from publishing guest pages.</p>
-            {notice && <p role="status" style={{ background: "#302b25", border: "1px solid #625342", padding: 13, borderRadius: 5, color: "#f0e2ce" }}>{notice}</p>}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 330px), 1fr))", gap: 20, alignItems: "start", minWidth: 0, maxWidth: "100%" }}>
-              <div style={{ display: "grid", gap: 20, minWidth: 0, maxWidth: "100%" }}>
-                <section style={panel}>
-                  <h2 style={{ fontSize: 18, marginTop: 0 }}>Create hotel</h2>
-                  <label style={label}>HOTEL NAME</label><div style={{ marginBottom: 15 }}>{input(hotelName, setHotelName, "e.g. Four Seasons Maui")}</div>
-                  <label style={label}>LOCATION</label><div style={{ marginBottom: 15 }}>{input(location, setLocation, "e.g. Wailea, Maui")}</div>
-                  <p style={{ color: "#aaa", fontSize: 12, overflowWrap: "anywhere" }}>Proposed URL: /hotel/{slug(hotelName) || "hotel-name"}</p>
-                  <button type="button" style={button} onClick={createHotel}>+ CREATE TEST HOTEL</button>
-                </section>
-                <section style={panel}>
-                  <h2 style={{ fontSize: 18, marginTop: 0 }}>Hotels ({hotels.length})</h2>
-                  {hotels.length === 0 && <p style={{ color: "#aaa", fontSize: 13 }}>No hotels yet. Create one above.</p>}
-                  {hotels.map(h => <button key={h.id} type="button" onClick={() => { setActiveId(h.id); setPreview(false); setNotice(""); }} style={{ display: "block", width: "100%", textAlign: "left", background: activeId === h.id ? "#38332c" : "#292929", color: "#fff", border: "1px solid #454545", padding: 15, borderRadius: 6, cursor: "pointer", marginTop: 9 }}><strong>{h.name}</strong><span style={{ display: "block", color: "#aaa", fontSize: 12, marginTop: 6 }}>{h.location} · {h.listings.length} postcards · {h.published ? (h.mode === "live" ? "LIVE / UNLISTED" : "DEMO / LISTED") : "DRAFT"}</span></button>)}
-                </section>
-              </div>
-              <div style={{ display: "grid", gap: 20, minWidth: 0, maxWidth: "100%" }}>
-                {!active ? <section style={panel}><h2 style={{ fontSize: 18, marginTop: 0 }}>Select a hotel</h2><p style={{ color: "#aaa", fontSize: 13 }}>Create or select a hotel to add its business postcards.</p></section> : (
-                  <>
-                    <section style={panel}>
-                      <h2 style={{ fontSize: 19, marginTop: 0 }}>{active.name}</h2>
-                      <p style={{ color: "#aaa", fontSize: 12 }}>{active.location} · /hotel/{slug(active.name)}</p>
-                      <p style={{ color: "#c5b59f", fontSize: 12 }}>{active.published ? "Published page — changes go live when saved to shared." : "Draft — publish below when ready."}</p>
-                      <button type="button" style={secondary} onClick={removeHotel}>DELETE TEST HOTEL</button>
-                    </section>
-                                         <section style={panel}>
-                       <h2 style={{ fontSize: 18, marginTop: 0 }}>Google Sheets import / Sync</h2>
-                       <p style={{ color: "#bbb", fontSize: 13, lineHeight: 1.6 }}>Use a separate Google Sheet for {active.name}. Publish its business tab to the web as CSV, then paste the published link. Business IDs match artwork ZIP filenames (e.g. 5501.webp). Changes are reviewed before saving.</p>
-                       <label style={label}>1. GOOGLE SHEETS PUBLISHED CSV LINK</label>
-                       <input type="url" value={sheetLink} onChange={e => setSheetLink(e.target.value)} placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv" style={{ ...field, marginBottom: 12 }} />
-                       <button type="button" disabled={sheetBusy || !sheetLink.trim()} style={{ ...button, marginBottom: 16 }} onClick={readGoogleSheet}>{sheetBusy ? "READING SHEET…" : "IMPORT / SYNC GOOGLE SHEET"}</button>
-                       <p style={{ color: "#aaa", fontSize: 12, marginTop: 0 }}>Required columns: Business ID, Business Name, Category. Optional: Phone, Booking URL, Directions URL, Artwork Filename, Artwork Has Name. Keep business IDs unique. A published sheet is publicly readable, so do not include private information.</p>
-                       {importRows && importHotelId === active.id && <>
-                         <label style={label}>2. UPLOAD ARTWORK ZIP (OR INDIVIDUAL IMAGES)</label>
-                         <input type="file" accept=".zip,application/zip" onChange={uploadZip} style={{ ...field, marginBottom: 12 }} />
-                         <label style={label}>OR SELECT INDIVIDUAL IMAGES</label>
-                         <input type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={e => setImportFiles(Array.from(e.target.files || []))} style={{ ...field, marginBottom: 16 }} />
-                         {artworkWarnings.length > 0 && <div role="alert" style={{ background: "#382c24", border: "1px solid #8d7051", padding: 12, marginBottom: 14, fontSize: 12 }}><strong>Artwork validation — {artworkWarnings.length} warning(s)</strong>{artworkWarnings.map((w, i) => <p key={i} style={{ margin: "8px 0 0" }}>{w}</p>)}</div>}
-                         <p style={{ color: "#bbb", fontSize: 12 }}>{importFiles.length} image(s) selected. Match filenames to Business ID: 5501.webp, 5501.jpg or 5501.png.</p>
-                         <h3 style={{ fontSize: 14 }}>3. Review changes</h3>
-                         {(() => {
-                           const byId = new Map(active.listings.filter(x => x.businessId).map(x => [x.businessId!.toLowerCase(), x]));
-                           const byName = new Map(active.listings.filter(x => !x.businessId).map(x => [normalizedName(x.name), x]));
-                           const previousFor = (r: ImportRow) => byId.get(r.businessId.toLowerCase()) || byName.get(normalizedName(r.name));
-                           const matchedIds = new Set(importRows.map(r => previousFor(r)?.id).filter(Boolean));
-                           const removed = active.listings.filter(x => !matchedIds.has(x.id));
-                           return <>
-                             <p style={{ color: "#ddd", fontSize: 12 }}>{importRows.filter(x => previousFor(x)).length} updates · {importRows.filter(x => !previousFor(x)).length} new · {removed.length} absent from sheet</p>
-                             <div style={{ maxHeight: 300, overflowY: "auto", borderTop: "1px solid #444" }}>
-                               {importRows.map(row => {
-                                 const prior = previousFor(row);
-                                 const requested = fileKey(row.artworkFilename);
-                                 const matched = importFiles.some(f => { const filename = fileKey(f.name); return requested.includes(".") ? filename === requested : [".webp", ".jpg", ".jpeg", ".png"].some(ext => filename === `${requested}${ext}`); });
-                                 return <div key={row.businessId} style={{ padding: "9px 0", borderBottom: "1px solid #333", fontSize: 12 }}><strong>{row.businessId} · {row.name}</strong> · {prior ? "UPDATE" : "NEW"}<div style={{ color: matched ? "#b9d7b0" : prior?.image ? "#d9c5a5" : "#f1aaa5", marginTop: 4 }}>{matched ? "New artwork matched" : prior?.image ? "Keeping existing artwork" : "No artwork yet — upload matching filename"}</div></div>;
-                               })}
-                             </div>
-                             {removed.length > 0 && <label style={{ display: "flex", gap: 9, alignItems: "flex-start", color: "#ddd", fontSize: 12, marginTop: 14 }}><input type="checkbox" checked={removeMissing} onChange={e => setRemoveMissing(e.target.checked)} />Remove {removed.length} business(es) absent from this Google Sheet ({removed.map(x => x.name).join(", ")}). Leave unchecked to keep them.</label>}
-                           </>;
-                         })()}
-                         <div style={{ display: "flex", flexWrap: "wrap", gap: 9, marginTop: 16 }}>
-                           <button type="button" disabled={importBusy} style={button} onClick={applyImport}>{importBusy ? "PROCESSING…" : "APPLY GOOGLE SHEET CHANGES"}</button>
-                           <button type="button" disabled={importBusy} style={secondary} onClick={() => { setImportRows(null); setImportFiles([]); setImportHotelId(null); }}>CANCEL</button>
-                         </div>
-                       </>}
-                     </section>
-<section style={panel}>
-                      <h2 style={{ fontSize: 18, marginTop: 0 }}>Add business postcard</h2>
-                      <label style={label}>BUSINESS NAME</label><div style={{ marginBottom: 15 }}>{input(name, setName, "Business name")}</div>
-                      <label style={label}>CATEGORY</label><select style={{ ...field, marginBottom: 15 }} value={category} onChange={e => setCategory(e.target.value as Category)}><option value="DINING">Restaurant</option><option value="SHOPPING">Fashion / Retail</option><option value="EXPERIENCES">Experience</option></select>
-                      <label style={label}>CLIENT ARTWORK (UP TO 5 MB — PORTRAIT 1080 × 1920 RECOMMENDED)</label><input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadArtwork} style={{ ...field, marginBottom: 12 }} />
-                      {image && <img src={image} alt="Uploaded artwork preview" style={{ width: "100%", height: 190, objectFit: "cover", borderRadius: 5, marginBottom: 12 }} />}
-                      <label style={{ display: "flex", gap: 9, alignItems: "center", color: "#ddd", fontSize: 13, marginBottom: 17 }}><input type="checkbox" checked={artworkHasName} onChange={e => setArtworkHasName(e.target.checked)} />Business name is already in the artwork</label>
-                      <label style={label}>PHONE (OPTIONAL IN TEST)</label><div style={{ marginBottom: 15 }}>{input(phone, setPhone, "+1...")}</div>
-                      <label style={label}>{category === "DINING" ? "RESERVATION LINK" : category === "SHOPPING" ? "APPOINTMENT LINK (OPTIONAL)" : "BOOKING LINK (OPTIONAL)"}</label><div style={{ marginBottom: 15 }}>{input(booking, setBooking, "https://...")}</div>
-                      <label style={label}>GOOGLE MAPS LINK</label><div style={{ marginBottom: 20 }}>{input(directions, setDirections, "https://maps.google.com/...")}</div>
-                      <button type="button" style={button} onClick={addPostcard}>+ ADD POSTCARD</button>
-                    </section>
-                    <section style={panel}>
-                      <h2 style={{ fontSize: 18, marginTop: 0 }}>Postcard order ({active.listings.length})</h2>
-                      {active.listings.map((item, i) => <div key={item.id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "12px 0", borderBottom: "1px solid #393939" }}><img src={item.image} alt="" style={{ width: 46, height: 62, objectFit: "cover", borderRadius: 4 }} /><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 13 }}>{i + 1}. {item.name}</div><div style={{ fontSize: 11, color: "#aaa", marginTop: 5 }}>{item.category}</div></div><button type="button" aria-label={`Move ${item.name} up`} disabled={i === 0} onClick={() => movePostcard(i, -1)} style={secondary}>↑</button><button type="button" aria-label={`Move ${item.name} down`} disabled={i === active.listings.length - 1} onClick={() => movePostcard(i, 1)} style={secondary}>↓</button><button type="button" aria-label={`Remove ${item.name}`} onClick={() => removePostcard(item.id)} style={secondary}>×</button></div>)}
-                      <button type="button" style={{ ...button, marginTop: 18, width: "100%" }} disabled={!active.listings.length} onClick={() => setPreview(p => !p)}>{preview ? "CLOSE PREVIEW" : "PREVIEW HOTEL POSTCARDS"}</button>
-                    </section>
-                  </>
-                )}
-              </div>
-            </div>
-            {active && preview && (
+     const booking = get(row, "Weblink", "Booking URL");
+     const directions = get(row, "Map", "Directions URL");
+     if (!validUrl(booking)) throw new Error(`Row ${line}: Weblink must be a full http:// or https:// URL.`);
+     if (!validUrl(directions)) throw new Error(`Row ${line}: Map must be a full http:// or https:// URL.`);
+
+     return {
+       businessId,
+       name,
+       category,
+       phone: get(row, "Phone"),
+       booking,
+       directions,
+       artworkFilename: get(row, "Artwork Filename") || businessId,
+       artworkHasName: ["yes", "true", "1"].includes(get(row, "Artwork Has Name").toLowerCase()),
+     };
+   });
+ }
+ async function unpackZip(zip:File|null){if(!zip)return new Map<string,File>();if(zip.size>35*1024*1024)throw new Error('ZIP exceeds 35 MB.');const z=await JSZip.loadAsync(zip);const entries=Object.values(z.files).filter(f=>!f.dir&&!f.name.startsWith('__MACOSX/')&&!f.name.split('/').pop()?.startsWith('.'));if(entries.length>100)throw new Error('Maximum 100 images per ZIP.');const map=new Map<string,File>();const warnings:string[]=[];for(const entry of entries){const filename=entry.name.split('/').pop()||'';const ext=filename.split('.').pop()?.toLowerCase();const mime=ext==='jpg'||ext==='jpeg'?'image/jpeg':ext==='png'?'image/png':ext==='webp'?'image/webp':'';if(!mime){warnings.push(`${filename}: unsupported file`);continue}const bytes=await entry.async('uint8array');if(bytes.length>5*1024*1024){warnings.push(`${filename}: exceeds 5 MB`);continue}const key=fileKey(filename);if(map.has(key))throw new Error(`Duplicate ZIP filename: ${filename}`);map.set(key,new File([Uint8Array.from(bytes)],filename,{type:mime}))}setArtworkWarnings(warnings);return map}
+ async function applySheet(existing:Listing[],rows:ImportRow[],zip:File|null){const uploads=await unpackZip(zip);const byId=new Map(existing.filter(x=>x.businessId).map(x=>[x.businessId!.toLowerCase(),x]));const byName=new Map(existing.filter(x=>!x.businessId).map(x=>[normalizedName(x.name),x]));const used=new Set<string>();const updated:Listing[]=[];for(const row of rows){const prior=byId.get(row.businessId.toLowerCase())||byName.get(normalizedName(row.name));if(prior)used.add(prior.id);const key=fileKey(row.artworkFilename);const file=key.includes('.')?uploads.get(key):['.webp','.jpg','.jpeg','.png'].map(ext=>uploads.get(key+ext)).find(Boolean);const image=file?await optimizeImage(file):prior?.image||'';if(!image)throw new Error(`${row.name} (${row.businessId}) has no matching artwork. Upload its image in the ZIP.`);updated.push({id:prior?.id||makeId(),businessId:row.businessId,name:row.name,category:row.category,phone:row.phone,booking:row.booking,directions:row.directions,artworkFilename:row.artworkFilename,artworkHasName:row.artworkHasName,image})}
+  // Existing postcards absent from a replacement sheet are retained; new sheet order does not overwrite a user's drag order.
+  const oldOrder=new Map(existing.map((x,i)=>[x.id,i]));updated.sort((a,b)=>(oldOrder.get(a.id)??Number.MAX_SAFE_INTEGER)-(oldOrder.get(b.id)??Number.MAX_SAFE_INTEGER));return [...updated,...existing.filter(x=>!used.has(x.id))];}
+ async function createProperty(){if(busy)return;const clean=propertyName.trim(),loc=propertyLocation.trim(),id=slug(clean);if(!clean||!loc||!sheetLink.trim()||!zipFile){setNotice('Enter property name, location, Google Sheets link and artwork ZIP.');return}if(!id||hotelsRef.current.some(h=>h.id===id)){setNotice('A property with this name or URL already exists.');return}setBusy(true);try{const rows=await readSheet(sheetLink);const listings=await applySheet([],rows,zipFile);const h:Hotel={id,name:clean,location:loc,listings,mode:newPublished&&newDemo?'demo':'live',published:newPublished,sheetLink:sheetLink.trim()};editHotels(prev=>[...prev,h]);selectHotel(id);setModal(null);setPropertyName('');setPropertyLocation('');setSheetLink('');setZipFile(null);setNewPublished(false);setNewDemo(false);setNotice(`${clean} created with ${listings.length} postcards. Saving automatically.`)}catch(e){setNotice(e instanceof Error?e.message:'Could not create property')}finally{setBusy(false)}}
+ async function syncProperty(){if(!active||busy)return;if(!sheetLink.trim()){setNotice('Paste the updated Google Sheets link.');return}setBusy(true);try{const id=active.id;const rows=await readSheet(sheetLink);const listings=await applySheet(active.listings,rows,zipFile);editHotels(prev=>prev.map(h=>h.id===id?{...h,listings,sheetLink:sheetLink.trim()}:h));setModal(null);setZipFile(null);setSheetLink('');setSelectedCard(null);setNotice(`Updated ${listings.length} postcards. Existing artwork was kept where no replacement was supplied.`)}catch(e){setNotice(e instanceof Error?e.message:'Import failed')}finally{setBusy(false)}}
+ async function downloadQr(h:Hotel){setQrBusy(true);try{const r=await fetch(`/api/admin/qr?hotelId=${encodeURIComponent(h.id)}`,{cache:'no-store'});if(!r.ok){const d=await r.json();throw new Error(d.error||'QR unavailable')}const blob=await r.blob();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`the-list-${h.id}-qr.png`;a.click();URL.revokeObjectURL(url)}catch(e){setNotice(e instanceof Error?e.message:'QR download failed')}finally{setQrBusy(false)}}
+ async function emailQr(h:Hotel){if(!window.confirm(`Email QR for ${h.name} to both administrators?`))return;setEmailBusy(true);try{const r=await fetch('/api/admin/send-qr',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({hotelId:h.id})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Email failed');setNotice('QR email accepted for delivery.')}catch(e){setNotice(e instanceof Error?e.message:'Email failed')}finally{setEmailBusy(false)}}
+ const pill=(published:boolean)=>({fontSize:11,borderRadius:20,padding:'5px 10px',color:published?'#cde5c7':'#d6c5ac',background:published?'#304435':'#3d342b'} as CSSProperties);
+ return <main style={{minHeight:'100vh',background:'#151515',color:'#f5f1eb',fontFamily:'Arial,Helvetica,sans-serif',padding:'26px 18px 70px'}}><div style={{maxWidth:1400,margin:'0 auto'}}>
+ <header style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,flexWrap:'wrap',borderBottom:'1px solid #373737',paddingBottom:20,marginBottom:26}}><div><div style={{fontFamily:'Georgia,serif',fontSize:30,letterSpacing:'.22em'}}>THE LIST</div><div style={{color:'#aaa',fontSize:10,letterSpacing:'.2em',marginTop:9}}>HOTEL MANAGEMENT · SHARED WORKSPACE</div></div>{approved&&<div style={{display:'flex',alignItems:'center',gap:16}}><span style={{color:'#bcb4a8',fontSize:12}}>{status==='saved'?'● Saved':status==='saving'?'◌ Saving…':status==='pending'?'◌ Changes pending':status==='loading'?'◌ Loading…':status==='conflict'?'⚠ Conflict':'⚠ Save error'}</span><button type='button' style={secondary} onClick={signOut}>SIGN OUT</button></div>}</header>
+ {!approved?<section style={{...panel,maxWidth:420,margin:'70px auto'}}><h1 style={{fontFamily:'Georgia,serif',fontWeight:400,fontSize:29}}>Welcome back.</h1><p style={{color:'#aaa',fontSize:13,lineHeight:1.7}}>Private management for authorised partners. Sign in with your own credentials.</p><form onSubmit={login}><label style={label} htmlFor='admin-email'>EMAIL</label><input id='admin-email' type='email' required style={{...field,marginBottom:16}} value={email} onChange={e=>setEmail(e.target.value)} placeholder='Email address'/><label style={label}>PASSWORD</label><input type='password' required autoComplete='current-password' style={{...field,marginBottom:16}} value={password} onChange={e=>setPassword(e.target.value)}/>{authError&&<p style={{color:'#eaa',fontSize:13}}>{authError}</p>}<button type='submit' style={{...button,width:'100%'}}>ENTER DASHBOARD →</button></form></section>:
+ <><div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,flexWrap:'wrap',marginBottom:16}}><div><h1 style={{fontFamily:'Georgia,serif',fontSize:36,fontWeight:400,margin:'0 0 8px'}}>Our Properties</h1><p style={{fontSize:13,color:'#aaa',margin:0}}>Manage your hotel collection and postcard order.</p></div><button style={button} disabled={!readyRef.current||status==='conflict'} onClick={()=>{setModal('add');setArtworkWarnings([]);setNotice('')}}>+ ADD PROPERTY</button></div>
+ {notice&&<p role='status' style={{background:'#302b25',border:'1px solid #625342',padding:13,borderRadius:7,color:'#f0e2ce'}}>{notice}</p>}
+ {status==='conflict'&&<div style={{...panel,marginBottom:16}}><strong>Another administrator saved changes.</strong><p style={{fontSize:13,color:'#bbb'}}>Your unsaved changes remain visible here. To protect both versions, automatic saving is paused. Coordinate with the other administrator before reloading.</p><button style={secondary} onClick={()=>{if(window.confirm('Discard your unsaved changes and load the latest shared data?')){dirtyRef.current=false;setStatus('loading');void loadShared(true)}}}>DISCARD LOCAL CHANGES & RELOAD</button></div>}
+ <section style={{...panel,marginBottom:18,padding:0,overflow:'hidden'}}><div style={{display:'flex',justifyContent:'space-between',padding:'17px 20px',borderBottom:'1px solid #383838'}}><strong style={{fontSize:15}}>Properties ({hotels.length})</strong><span style={{color:'#aaa',fontSize:12}}>Scroll to view all properties</span></div><div style={{maxHeight:280,overflowY:'auto'}}><div style={{minWidth:640}}><div style={{display:'grid',gridTemplateColumns:'2.4fr 1.4fr .6fr .8fr 1fr .6fr',padding:'12px 20px',color:'#aaa',fontSize:11,borderBottom:'1px solid #383838'}}><span>PROPERTY</span><span>LOCATION</span><span>CARDS</span><span>STATUS</span><span>VISIBILITY</span><span/></div>{hotels.map(h=><button key={h.id} onClick={()=>selectHotel(h.id)} style={{width:'100%',display:'grid',gridTemplateColumns:'2.4fr 1.4fr .6fr .8fr 1fr .6fr',textAlign:'left',alignItems:'center',gap:4,padding:'14px 20px',background:h.id===activeId?'#35302b':'transparent',color:'#f5f1eb',border:0,borderBottom:'1px solid #333',cursor:'pointer',fontSize:12}}><strong>{h.name}</strong><span style={{color:'#aaa'}}>{h.location}</span><span>{h.listings.length}</span><span><span style={pill(!!h.published)}>{h.published?'Live':'Dormant'}</span></span><span style={{color:'#bfb6aa'}}>{h.published&&h.mode==='demo'?'Demo gallery':h.published?'Unlisted':'—'}</span><span style={{color:'#e8dfd2'}}>OPEN ↗</span></button>)}{!hotels.length&&<p style={{padding:20,color:'#aaa'}}>No properties yet. Click Add Property to begin.</p>}</div></div></section>
+ {active?<section style={{...panel,padding:0,overflow:'hidden'}}><div style={{padding:'18px 22px',display:'flex',justifyContent:'space-between',gap:12,alignItems:'center',flexWrap:'wrap',borderBottom:'1px solid #383838'}}><div><h2 style={{fontFamily:'Georgia,serif',fontWeight:400,fontSize:25,margin:'0 0 5px'}}>{active.name}</h2><span style={{fontSize:12,color:'#aaa'}}>{active.location} · /hotel/{active.id}</span></div><div style={{display:'flex',gap:9,flexWrap:'wrap'}}><button style={secondary} onClick={()=>{setSheetLink(active.sheetLink||'');setZipFile(null);setArtworkWarnings([]);setModal('sync')}}>REIMPORT SHEET + ZIP</button><button style={secondary} onClick={()=>setPreview(true)}>FULL HOTEL PREVIEW</button></div></div>
+ <div style={{display:'grid',gridTemplateColumns:'minmax(0,1.5fr) minmax(260px,.8fr)',gap:18,padding:18}} className='admin-workspace'><div style={{minWidth:0}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}><h3 style={{fontSize:17,fontWeight:500,margin:0}}>Cards ({active.listings.length})</h3><span style={{color:'#aaa',fontSize:12}}>Drag to reorder</span></div><div style={{maxHeight:610,overflowY:'auto'}}>{active.listings.map((item,i)=><div key={item.id} draggable onDragStart={e=>{e.dataTransfer.effectAllowed='move';setDragIndex(i)}} onDragOver={e=>{e.preventDefault();setDragOver(i)}} onDrop={e=>{e.preventDefault();if(dragIndex!==null&&dragIndex!==i)editActive(h=>({...h,listings:reorder(h.listings,dragIndex,i)}));setDragIndex(null);setDragOver(null)}} onDragEnd={()=>{setDragIndex(null);setDragOver(null)}} onClick={()=>setSelectedCard(item.id)} role='button' tabIndex={0} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setSelectedCard(item.id)}}} style={{display:'flex',alignItems:'center',gap:12,marginBottom:9,padding:10,borderRadius:9,border:dragOver===i?'1px solid #e8dfd2':selected?.id===item.id?'1px solid #756956':'1px solid #3a3a3a',background:selected?.id===item.id?'#35302b':'#292929',cursor:'grab'}}><span aria-hidden='true' style={{fontSize:21,color:'#aaa'}}>⠿</span><span style={{fontSize:12,color:'#aaa',width:19}}>{i+1}</span>{item.image?<img src={item.image} alt='' style={{width:48,height:64,objectFit:'contain',background:'#191919',borderRadius:5}}/>:<div style={{width:48,height:64,background:'#111'}}/>}<div style={{minWidth:0,flex:1}}><div style={{fontSize:13,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</div><div style={{fontSize:11,color:'#aaa',marginTop:6}}>{item.category} · ID {item.businessId||'legacy'}</div></div><span style={{color:'#b8ad9d',fontSize:11}}>PREVIEW</span></div>)}{!active.listings.length&&<p style={{color:'#aaa'}}>No cards imported yet.</p>}</div></div>
+ <div style={{minWidth:0,borderLeft:'1px solid #383838',paddingLeft:18}}><h3 style={{fontSize:17,fontWeight:500,margin:'0 0 14px'}}>Card Preview</h3><div style={{margin:'0 auto',maxWidth:270,background:'#0f0f0f',border:'6px solid #494949',borderRadius:29,padding:7,boxShadow:'0 10px 32px #0008'}}><div style={{borderRadius:20,overflow:'hidden',aspectRatio:'9 / 16',background:'#1c1b19',position:'relative'}}>{selected?.image?<img src={selected.image} alt={selected.name+' artwork'} style={{width:'100%',height:'100%',objectFit:'contain'}}/>:<div style={{display:'grid',placeItems:'center',height:'100%',color:'#aaa'}}>Select a card</div>}<div style={{position:'absolute',top:10,left:12,color:'#fff',fontSize:10,textShadow:'0 1px 5px #000'}}>THE LIST</div></div></div><p style={{fontSize:12,color:'#aaa',textAlign:'center',marginTop:12}}>{selected?`${selected.name} · ${active.listings.findIndex(x=>x.id===selected.id)+1} of ${active.listings.length}`:'Click a card to preview it'}</p><p style={{fontSize:11,color:'#8f8f8f',textAlign:'center'}}>Artwork-only preview. Full Hotel Preview uses the existing guest layout.</p></div></div>
+ <div style={{borderTop:'1px solid #383838',padding:'18px 22px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:14}}><div style={{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}><span style={{fontSize:12,color:'#c9c1b7'}}>PUBLISHING</span><select aria-label='Publishing status' style={{...field,width:'auto'}} value={active.published?'live':'dormant'} onChange={e=>editActive(h=>({...h,published:e.target.value==='live',mode:e.target.value==='live'?h.mode||'live':'live'}))}><option value='dormant'>Dormant</option><option value='live'>Live</option></select>{active.published&&<label style={{display:'flex',gap:7,alignItems:'center',fontSize:12}}><input type='checkbox' checked={active.mode==='demo'} onChange={e=>editActive(h=>({...h,mode:e.target.checked?'demo':'live'}))}/> Add to demo gallery</label>}</div><div style={{display:'flex',gap:9,flexWrap:'wrap'}}><button style={secondary} disabled={!active.published||status!=='saved'||qrBusy} onClick={()=>void downloadQr(active)}>DOWNLOAD QR</button><button style={secondary} disabled={!active.published||status!=='saved'||emailBusy} onClick={()=>void emailQr(active)}>{emailBusy?'SENDING…':'EMAIL QR'}</button><button style={secondary} onClick={()=>{void navigator.clipboard.writeText(`${window.location.origin}/hotel/${active.id}`);setNotice('Hotel link copied.')}}>COPY LINK</button><Link href={`/hotel/${active.id}`} target='_blank' style={{...secondary,textDecoration:'none'}}>OPEN HOTEL ↗</Link></div></div></section>:<section style={panel}><h2 style={{fontFamily:'Georgia,serif',fontWeight:400}}>Select a property</h2><p style={{fontSize:13,color:'#aaa'}}>Choose a property above to manage its cards and publishing.</p></section>}
+ <style>{`@media(max-width:800px){.admin-workspace{grid-template-columns:1fr!important}.admin-workspace>div:last-child{border-left:0!important;border-top:1px solid #383838;padding-left:0!important;padding-top:20px}}`}</style>
+             {active && preview && (
               <div
                 role="dialog"
                 aria-modal="true"
@@ -591,28 +302,13 @@ export default function AdminPage() {
                 </div>
               </div>
             )}
-            <section style={{ ...panel, marginTop: 24 }}>
-              <h2 style={{ fontSize: 17, marginTop: 0 }}>Publishing & QR codes</h2>
-              <p style={{ color: "#aaa", fontSize: 13, lineHeight: 1.7 }}>Set a hotel to Demo to show it in the public demo gallery, or Live for an unlisted, QR-accessible page. Changes only take effect after SAVE TO SHARED. An unlisted URL is not password protected.</p>
-              {active ? <>
-                <label style={label}>HOTEL VISIBILITY</label>
-                <select value={active.mode || "demo"} onChange={e => updateHotel(h => ({...h,mode:e.target.value as "demo"|"live"}))} style={{...field,marginBottom:12}}><option value="demo">Demo — listed in gallery</option><option value="live">Live — unlisted, QR / link only</option></select>
-                <label style={{display:"flex",gap:9,alignItems:"center",fontSize:13,marginBottom:15}}><input type="checkbox" checked={active.published === true} onChange={e => updateHotel(h => ({...h,published:e.target.checked}))}/> Published (uncheck to hide)</label>
-                <p style={{color:"#aaa",fontSize:12}}>Hotel URL: /hotel/{active.id}</p>
-                <div style={{display:"flex",flexWrap:"wrap",gap:9}}>
-                  <button type="button" style={button} onClick={saveShared} disabled={sharedBusy || !sharedLoaded}>SAVE / PUBLISH CHANGES</button>
-                  <button type="button" style={secondary} onClick={()=>downloadQr(active)} disabled={qrBusy || !active.published || !sharedLoaded}>DOWNLOAD QR</button>
-                  <button type="button" style={secondary} onClick={()=>emailQr(active)} disabled={emailBusy || !active.published || !sharedLoaded}>{emailBusy ? "SENDING…" : "SEND QR TO BOTH"}</button>
-                  <button type="button" style={secondary} onClick={()=>{void navigator.clipboard.writeText(`${window.location.origin}/hotel/${active.id}`);setNotice("Hotel link copied.")}}>COPY HOTEL LINK</button>
-                  <Link href={`/hotel/${active.id}`} target="_blank" style={{...secondary,textDecoration:"none"}}>OPEN HOTEL ↗</Link>
-                </div>
-                <p style={{color:"#aaa",fontSize:12,marginTop:12}}>QR actions use the last saved published version. Save and reload shared data after publishing before sending QR codes. Email requires RESEND_API_KEY and RESEND_FROM_EMAIL in Vercel.</p>
-              </> : <p style={{color:"#aaa",fontSize:13}}>Select a hotel to manage publishing.</p>}
-            </section>
-          </>
-        )}
-        <footer style={{ marginTop: 32, color: "#777", fontSize: 11, textAlign: "center" }}>THE LIST · INTERNAL TESTING ONLY · <Link href="/hotel/maui-demo" style={{ color: "#bbb" }}>VIEW MAUI DEMO ↗</Link></footer>
-      </div>
-    </main>
-  );
+
+ {modal&&<div role='dialog' aria-modal='true' aria-label={modal==='add'?'Add property':'Reimport property'} style={{position:'fixed',inset:0,zIndex:10010,background:'#000c',display:'grid',placeItems:'center',padding:16,overflowY:'auto'}}><section style={{...panel,width:'100%',maxWidth:520,maxHeight:'90vh',overflowY:'auto'}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}><h2 style={{fontFamily:'Georgia,serif',fontWeight:400,fontSize:26,margin:'0 0 20px'}}>{modal==='add'?'Add Property':'Update Property'}</h2><button style={secondary} onClick={()=>setModal(null)}>✕</button></div>
+ {modal==='add'&&<><label style={label}>PROPERTY NAME</label><input style={{...field,marginBottom:16}} value={propertyName} onChange={e=>setPropertyName(e.target.value)} placeholder='e.g. Puente Romano'/><label style={label}>LOCATION</label><input style={{...field,marginBottom:16}} value={propertyLocation} onChange={e=>setPropertyLocation(e.target.value)} placeholder='e.g. Marbella, Spain'/></>}
+ <label style={label}>GOOGLE SHEETS PUBLISHED CSV LINK</label><input style={{...field,marginBottom:16}} type='url' value={sheetLink} onChange={e=>setSheetLink(e.target.value)} placeholder='https://docs.google.com/spreadsheets/...'/><label style={label}>ARTWORK ZIP {modal==='sync'?'(OPTIONAL — EXISTING ARTWORK IS PRESERVED)':''}</label><input style={{...field,marginBottom:12}} type='file' accept='.zip,application/zip' onChange={e=>setZipFile(e.target.files?.[0]||null)}/><p style={{fontSize:12,color:'#aaa',lineHeight:1.6}}>Match artwork filenames to the ID column (5501.webp, 5502.jpg). JPG, PNG or WebP, max 5 MB each, max 100 images per ZIP. Artwork is converted to 1080 × 1920 without cropping or stretching.</p>
+ {modal==='add'&&<><label style={label}>PUBLISHING</label><label style={{display:'block',marginBottom:10,fontSize:13}}><input type='radio' checked={!newPublished} onChange={()=>{setNewPublished(false);setNewDemo(false)}}/> Dormant — unpublished</label><label style={{display:'block',marginBottom:10,fontSize:13}}><input type='radio' checked={newPublished} onChange={()=>setNewPublished(true)}/> Live — publish hotel URL and QR</label>{newPublished&&<label style={{display:'block',marginBottom:14,fontSize:13}}><input type='checkbox' checked={newDemo} onChange={e=>setNewDemo(e.target.checked)}/> Add to public demo gallery</label>}</>}
+ {notice&&<p role='alert' style={{color:'#e5b994',fontSize:12}}>{notice}</p>}{artworkWarnings.length>0&&<p style={{color:'#e5b994',fontSize:12}}>{artworkWarnings.join(' · ')}</p>}
+ <div style={{display:'flex',gap:9,flexWrap:'wrap',marginTop:20}}><button style={button} disabled={busy||status==='conflict'} onClick={()=>void(modal==='add'?createProperty():syncProperty())}>{busy?'PROCESSING…':modal==='add'?'CREATE PROPERTY':'REIMPORT & UPDATE'}</button><button style={secondary} disabled={busy} onClick={()=>setModal(null)}>CANCEL</button></div></section></div>}
+ </>}
+ </div></main>
 }
