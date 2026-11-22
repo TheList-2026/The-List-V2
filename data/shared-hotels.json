@@ -182,18 +182,6 @@
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/513126cd882554d109a07bba72bd2c633ce473da57828dee60a7db362e679113.jpg"
         },
         {
-          "id": "1795058939622-wrb0qpq5xis",
-          "businessId": "5601",
-          "name": "Renato's",
-          "category": "DINING",
-          "phone": "+1 561-655-9752",
-          "booking": "https://www.renatospalmbeach.com/",
-          "directions": "https://maps.app.goo.gl/RYrppR6pcudnuhZZ8",
-          "artworkFilename": "5601",
-          "artworkHasName": false,
-          "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/fa999b0d5c7e6a517161b2e3741241920b21c12e0f0110da48491c1509ccc83d.jpg"
-        },
-        {
           "id": "1795058939824-d32xthubpsl",
           "businessId": "5614",
           "name": "Greenleaf & Crosby",
@@ -204,6 +192,18 @@
           "artworkFilename": "5614",
           "artworkHasName": false,
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/e96a36d3efdc7790c69460ada127b1f8802803bf4ff7a00cec1fd1a9fd5bf810.jpg"
+        },
+        {
+          "id": "1795058939622-wrb0qpq5xis",
+          "businessId": "5601",
+          "name": "Renato's",
+          "category": "DINING",
+          "phone": "+1 561-655-9752",
+          "booking": "https://www.renatospalmbeach.com/",
+          "directions": "https://maps.app.goo.gl/RYrppR6pcudnuhZZ8",
+          "artworkFilename": "5601",
+          "artworkHasName": false,
+          "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/fa999b0d5c7e6a517161b2e3741241920b21c12e0f0110da48491c1509ccc83d.jpg"
         },
         {
           "id": "1795058939884-2f39gbqhokk",
