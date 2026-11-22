@@ -182,18 +182,6 @@
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/e96a36d3efdc7790c69460ada127b1f8802803bf4ff7a00cec1fd1a9fd5bf810.jpg"
         },
         {
-          "id": "1795382271186-snswfocjoqo",
-          "businessId": "5622",
-          "name": "McLaren Palm Beach",
-          "category": "SHOPPING",
-          "phone": "+1 561-805-5555",
-          "booking": "https://www.mclarenpalmbeach.com/",
-          "directions": "https://maps.app.goo.gl/5kDCuuzWbCdnswD46",
-          "artworkFilename": "5622",
-          "artworkHasName": false,
-          "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/e076d6cf2259f2da9ab36486d7d49160a57293a06682afe7668c7e83d7b7cc85.jpg"
-        },
-        {
           "id": "1795058939942-kxiln9i00k",
           "businessId": "5616",
           "name": "Findlay Galleries",
@@ -216,6 +204,18 @@
           "artworkFilename": "5601",
           "artworkHasName": false,
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/fa999b0d5c7e6a517161b2e3741241920b21c12e0f0110da48491c1509ccc83d.jpg"
+        },
+        {
+          "id": "1795382271186-snswfocjoqo",
+          "businessId": "5622",
+          "name": "McLaren Palm Beach",
+          "category": "SHOPPING",
+          "phone": "+1 561-805-5555",
+          "booking": "https://www.mclarenpalmbeach.com/",
+          "directions": "https://maps.app.goo.gl/5kDCuuzWbCdnswD46",
+          "artworkFilename": "5622",
+          "artworkHasName": false,
+          "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/e076d6cf2259f2da9ab36486d7d49160a57293a06682afe7668c7e83d7b7cc85.jpg"
         },
         {
           "id": "1795058939884-2f39gbqhokk",
