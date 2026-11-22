@@ -170,18 +170,6 @@
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/cba010df7335308197fd7ed06698f959329f4c17bf10df5b8873b3ed57611edf.jpg"
         },
         {
-          "id": "1795058939762-q369hc67t3s",
-          "businessId": "5608",
-          "name": "Barton & Gray Mariners Club",
-          "category": "EXPERIENCES",
-          "phone": "+1 617-728-3555",
-          "booking": "https://www.bartonandgray.com/",
-          "directions": "https://www.google.com/maps/search/?api=1&query=Barton+and+Gray+Mariners+Club+Palm+Beach+FL",
-          "artworkFilename": "5608",
-          "artworkHasName": false,
-          "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/513126cd882554d109a07bba72bd2c633ce473da57828dee60a7db362e679113.jpg"
-        },
-        {
           "id": "1795058939824-d32xthubpsl",
           "businessId": "5614",
           "name": "Greenleaf & Crosby",
@@ -252,6 +240,18 @@
           "artworkFilename": "5621",
           "artworkHasName": false,
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/a00b267008ce96cd498ee1aa671375166293fa8ad80a9d172ba521743ac3a3df.jpg"
+        },
+        {
+          "id": "1795058939762-q369hc67t3s",
+          "businessId": "5608",
+          "name": "Barton & Gray Mariners Club",
+          "category": "EXPERIENCES",
+          "phone": "+1 617-728-3555",
+          "booking": "https://www.bartonandgray.com/",
+          "directions": "https://www.google.com/maps/search/?api=1&query=Barton+and+Gray+Mariners+Club+Palm+Beach+FL",
+          "artworkFilename": "5608",
+          "artworkHasName": false,
+          "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/513126cd882554d109a07bba72bd2c633ce473da57828dee60a7db362e679113.jpg"
         },
         {
           "id": "1795058940123-kxxvxhurqh",
