@@ -194,6 +194,18 @@
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/e96a36d3efdc7790c69460ada127b1f8802803bf4ff7a00cec1fd1a9fd5bf810.jpg"
         },
         {
+          "id": "1795058939942-kxiln9i00k",
+          "businessId": "5616",
+          "name": "Findlay Galleries",
+          "category": "EXPERIENCES",
+          "phone": "+1 561-655-2090",
+          "booking": "https://findlaygalleries.com/",
+          "directions": "https://www.google.com/maps/search/?api=1&query=Findlay+Galleries+165+Worth+Ave+Palm+Beach+FL+33480",
+          "artworkFilename": "5616",
+          "artworkHasName": false,
+          "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/8476bc83c2c3a8a0a85a84464374090eb9603ac1510d6027a73c1f3f88fb85c3.jpg"
+        },
+        {
           "id": "1795058939622-wrb0qpq5xis",
           "businessId": "5601",
           "name": "Renato's",
@@ -216,18 +228,6 @@
           "artworkFilename": "5615",
           "artworkHasName": false,
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/a0e5e65d7f78cf5442420000329a266cc7a09a0bfab43f69bb282bd333c37091.jpg"
-        },
-        {
-          "id": "1795058939942-kxiln9i00k",
-          "businessId": "5616",
-          "name": "Findlay Galleries",
-          "category": "EXPERIENCES",
-          "phone": "+1 561-655-2090",
-          "booking": "https://findlaygalleries.com/",
-          "directions": "https://www.google.com/maps/search/?api=1&query=Findlay+Galleries+165+Worth+Ave+Palm+Beach+FL+33480",
-          "artworkFilename": "5616",
-          "artworkHasName": false,
-          "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/8476bc83c2c3a8a0a85a84464374090eb9603ac1510d6027a73c1f3f88fb85c3.jpg"
         },
         {
           "id": "1795058940001-rnzivbv9g2p",
