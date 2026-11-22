@@ -230,18 +230,6 @@
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/344e82b5af27e3ccaf9bf70d4014dd7d28c925fbfaf2b690ae2ec18a3e99dfba.jpg"
         },
         {
-          "id": "1795058940065-6877i57t15d",
-          "businessId": "5621",
-          "name": "Four Arts Botanical Gardens",
-          "category": "EXPERIENCES",
-          "phone": "+1 561-655-7227",
-          "booking": "https://fourarts.org/botanical-gardens/",
-          "directions": "https://www.google.com/maps/search/?api=1&query=Philip+Hulitar+Sculpture+Garden+100+Four+Arts+Plaza+Palm+Beach+FL+33480",
-          "artworkFilename": "5621",
-          "artworkHasName": false,
-          "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/a00b267008ce96cd498ee1aa671375166293fa8ad80a9d172ba521743ac3a3df.jpg"
-        },
-        {
           "id": "1795058940123-kxxvxhurqh",
           "businessId": "5612",
           "name": "Hermès",
@@ -252,6 +240,18 @@
           "artworkFilename": "5612",
           "artworkHasName": false,
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/b6a7d3626053acde1c026d06b4b5024fd2cd8dd757e6ec842a864799f6f75498.jpg"
+        },
+        {
+          "id": "1795058940065-6877i57t15d",
+          "businessId": "5621",
+          "name": "Four Arts Botanical Gardens",
+          "category": "EXPERIENCES",
+          "phone": "+1 561-655-7227",
+          "booking": "https://fourarts.org/botanical-gardens/",
+          "directions": "https://www.google.com/maps/search/?api=1&query=Philip+Hulitar+Sculpture+Garden+100+Four+Arts+Plaza+Palm+Beach+FL+33480",
+          "artworkFilename": "5621",
+          "artworkHasName": false,
+          "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/a00b267008ce96cd498ee1aa671375166293fa8ad80a9d172ba521743ac3a3df.jpg"
         },
         {
           "id": "1795058939762-q369hc67t3s",
