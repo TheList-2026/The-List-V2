@@ -113,14 +113,78 @@ export default function AdminPage(){
  }
  async function saveShared(){
   if(!approvedRef.current||!readyRef.current||!dirtyRef.current||savingRef.current)return;
-  savingRef.current=true;setStatus('saving');const snapshot=hotelsRef.current;
-  try{const r=await fetch('/api/shared-hotels',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({hotels:snapshot,sha:shaRef.current})});const d=await r.json();
-   if(r.status===409){setStatus('conflict');setNotice('Another administrator saved first. Your changes are still on this screen. Do not refresh; resolve the conflict before continuing.');return}
+  savingRef.current=true;
+  setStatus('saving');
+  const snapshot=hotelsRef.current;
+
+  try{
+   const uploaded=new Map<string,string>();
+   const prepared:Hotel[]=[];
+
+   for(const hotel of snapshot){
+    const listings:Listing[]=[];
+
+    for(const listing of hotel.listings){
+     let image=listing.image;
+
+     if(image.startsWith('data:image/jpeg;base64,')){
+      if(uploaded.has(image)){
+       image=uploaded.get(image)!;
+      }else{
+       const response=await fetch('/api/admin/artwork',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({image})
+       });
+
+       const data=await response.json();
+
+       if(!response.ok||typeof data.image!=='string'){
+        throw new Error(data.error||'Artwork upload failed. Your changes have not been saved.');
+       }
+
+       uploaded.set(image,data.image);
+       image=data.image;
+      }
+     }
+
+     listings.push({...listing,image});
+    }
+
+    prepared.push({...hotel,listings});
+   }
+
+   const r=await fetch('/api/shared-hotels',{
+    method:'PUT',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({hotels:prepared,sha:shaRef.current})
+   });
+
+   const d=await r.json();
+
+   if(r.status===409){
+    setStatus('conflict');
+    setNotice('Another administrator saved first. Your changes remain on this screen. Do not refresh.');
+    return;
+   }
+
    if(!r.ok)throw new Error(d.error||'Shared save failed');
+
    shaRef.current=d.sha||null;
-   if(hotelsRef.current===snapshot){dirtyRef.current=false;setStatus('saved')}else{setStatus('pending')}
-  }catch(e){setStatus('error');setNotice(e instanceof Error?e.message:'Save failed. Your changes remain on this screen.')}
-  finally{savingRef.current=false}
+
+   if(hotelsRef.current===snapshot){
+    showHotels(prepared);
+    dirtyRef.current=false;
+    setStatus('saved');
+   }else{
+    setStatus('pending');
+   }
+  }catch(e){
+   setStatus('error');
+   setNotice(e instanceof Error?e.message:'Save failed. Your changes remain on this screen.');
+  }finally{
+   savingRef.current=false;
+  }
  }
  useEffect(()=>{let mounted=true;fetch('/api/admin/session',{cache:'no-store'}).then(r=>r.json()).then(d=>{if(mounted&&d.authenticated){approvedRef.current=true;setApproved(true)}}).catch(()=>{});return()=>{mounted=false}},[]);
  useEffect(()=>{if(!approved)return;approvedRef.current=true;void loadShared(true);const timer=setInterval(()=>{if(!dirtyRef.current&&!savingRef.current)void loadShared(false)},5000);return()=>clearInterval(timer)},[approved]);
