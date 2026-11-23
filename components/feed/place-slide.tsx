@@ -63,19 +63,19 @@ export function PlaceSlide({
 
       {/* BUSINESS DETAILS */}
       <div className="mt-auto px-6 pb-[max(1.75rem,env(safe-area-inset-bottom))]">
-        <motion.h2
+        {place.showText !== false && <motion.h2
           {...reveal(isActive, .15)}
           className="text-balance font-serif text-5xl font-light leading-[0.95] tracking-tight text-ivory"
         >
           {place.name}
-        </motion.h2>
+        </motion.h2>}
 
-        <motion.p
+        {place.showText !== false && <motion.p
           {...reveal(isActive, .25)}
           className="mt-4 max-w-[30ch] text-pretty text-sm font-light leading-relaxed text-ivory/80"
         >
           {place.description}
-        </motion.p>
+        </motion.p>}
 
         {/* EXISTING ACTION BUTTONS — UNCHANGED */}
         <div className="mt-7">
