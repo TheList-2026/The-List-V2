@@ -343,7 +343,7 @@
           "artworkFilename": "5705",
           "artworkHasName": false,
           "published": true,
-          "showText": false,
+          "showText": true,
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/cc6143b6d7663f5cf0de5d9dc8f9f0bb39bd29b9ada5033c6c686c6b0fafd781.jpg"
         },
         {
@@ -357,7 +357,7 @@
           "artworkFilename": "5706",
           "artworkHasName": false,
           "published": true,
-          "showText": false,
+          "showText": true,
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/6bc1994794ebf49f07dde90ff73945c55f374daaa25120e131ee3df132e49349.jpg"
         },
         {
@@ -371,7 +371,7 @@
           "artworkFilename": "5707",
           "artworkHasName": false,
           "published": true,
-          "showText": false,
+          "showText": true,
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/34d75b3b595501d181db0da64e3d52ad8f08c7b7210b05a1fc55d8d4207b6fd3.jpg"
         },
         {
@@ -385,7 +385,7 @@
           "artworkFilename": "5708",
           "artworkHasName": false,
           "published": true,
-          "showText": false,
+          "showText": true,
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/e22d483d994dee1158bd389bf068c9d8ceb46c47e767eb2f7657fa0e72b8ec77.jpg"
         },
         {
