@@ -327,7 +327,7 @@
           "artworkFilename": "5703",
           "artworkHasName": false,
           "published": true,
-          "showText": false,
+          "showText": true,
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/508714e252166e00ec3655e37a6cbc776907ba3291072d2a9aa5cfbbcd73e42e.jpg"
         },
         {
@@ -341,7 +341,7 @@
           "artworkFilename": "5704",
           "artworkHasName": false,
           "published": true,
-          "showText": false,
+          "showText": true,
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/54f7579e079bbe17de2c5143d464f835a16b7851eec4981602d7166d8911b47b.jpg"
         },
         {
