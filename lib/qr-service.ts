@@ -11,28 +11,9 @@ export async function hotelQr(hotelId: string) {
 
   if (!hotel) return null;
 
-  let base: string;
-
-  if (process.env.VERCEL_ENV === 'preview') {
-    // Use the URL of this specific Preview deployment.
-    const previewHost =
-      process.env.VERCEL_URL ||
-      process.env.VERCEL_BRANCH_URL;
-
-    if (!previewHost) {
-      throw new Error('Preview deployment URL is missing.');
-    }
-
-    base = `https://${previewHost}`;
-  } else {
-    // Final public website once we launch.
-    base =
-      process.env.NEXT_PUBLIC_SITE_URL ||
-      'https://www.thelist.studio';
-  }
-
-  const url =
-    `${base.replace(/\/$/, '')}/hotel/${encodeURIComponent(hotel.id)}`;
+  // Printed QR codes always point to the permanent public hotel address,
+  // including when generated from an admin preview deployment.
+  const url = `https://thelist.studio/hotel/${encodeURIComponent(hotel.id)}`;
 
   const png = await QRCode.toBuffer(url, {
     type: 'png',
