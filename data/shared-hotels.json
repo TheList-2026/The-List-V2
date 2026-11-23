@@ -167,6 +167,8 @@
           "directions": "https://www.google.com/maps/search/?api=1&query=Cafe+Boulud+301+Australian+Ave+Palm+Beach+FL+33480",
           "artworkFilename": "5602",
           "artworkHasName": false,
+          "published": true,
+          "showText": true,
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/cba010df7335308197fd7ed06698f959329f4c17bf10df5b8873b3ed57611edf.jpg"
         },
         {
@@ -179,6 +181,8 @@
           "directions": "https://www.google.com/maps/search/?api=1&query=Betteridge+Jewelers+236+Worth+Ave+Palm+Beach+FL+33480",
           "artworkFilename": "5614",
           "artworkHasName": false,
+          "published": true,
+          "showText": true,
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/e96a36d3efdc7790c69460ada127b1f8802803bf4ff7a00cec1fd1a9fd5bf810.jpg"
         },
         {
@@ -191,6 +195,8 @@
           "directions": "https://www.google.com/maps/search/?api=1&query=Findlay+Galleries+165+Worth+Ave+Palm+Beach+FL+33480",
           "artworkFilename": "5616",
           "artworkHasName": false,
+          "published": true,
+          "showText": true,
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/8476bc83c2c3a8a0a85a84464374090eb9603ac1510d6027a73c1f3f88fb85c3.jpg"
         },
         {
@@ -203,7 +209,9 @@
           "directions": "https://maps.app.goo.gl/RYrppR6pcudnuhZZ8",
           "artworkFilename": "5601",
           "artworkHasName": false,
-          "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/fa999b0d5c7e6a517161b2e3741241920b21c12e0f0110da48491c1509ccc83d.jpg"
+          "published": true,
+          "showText": true,
+          "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/4415172bea1ce277295397a30613b2ab8d44dcfc387b96e97f2b9295118ebd1a.jpg"
         },
         {
           "id": "1795382271186-snswfocjoqo",
@@ -215,8 +223,9 @@
           "directions": "https://maps.app.goo.gl/5kDCuuzWbCdnswD46",
           "artworkFilename": "5622",
           "artworkHasName": false,
-          "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/e076d6cf2259f2da9ab36486d7d49160a57293a06682afe7668c7e83d7b7cc85.jpg",
-          "showText": false
+          "published": true,
+          "showText": false,
+          "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/e076d6cf2259f2da9ab36486d7d49160a57293a06682afe7668c7e83d7b7cc85.jpg"
         },
         {
           "id": "1795058939884-2f39gbqhokk",
@@ -228,6 +237,8 @@
           "directions": "https://www.google.com/maps/search/?api=1&query=Graff+221+Worth+Ave+Palm+Beach+FL+33480",
           "artworkFilename": "5615",
           "artworkHasName": false,
+          "published": true,
+          "showText": true,
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/a0e5e65d7f78cf5442420000329a266cc7a09a0bfab43f69bb282bd333c37091.jpg"
         },
         {
@@ -240,6 +251,8 @@
           "directions": "https://www.google.com/maps/search/?api=1&query=Signature+Aviation+PBI+1500+Perimeter+Rd+West+Palm+Beach+FL+33406",
           "artworkFilename": "5619",
           "artworkHasName": false,
+          "published": true,
+          "showText": true,
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/344e82b5af27e3ccaf9bf70d4014dd7d28c925fbfaf2b690ae2ec18a3e99dfba.jpg"
         },
         {
@@ -252,6 +265,8 @@
           "directions": "https://www.google.com/maps/search/?api=1&query=Hermes+340+Royal+Poinciana+Way+Palm+Beach+FL+33480",
           "artworkFilename": "5612",
           "artworkHasName": false,
+          "published": true,
+          "showText": true,
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/b6a7d3626053acde1c026d06b4b5024fd2cd8dd757e6ec842a864799f6f75498.jpg"
         },
         {
@@ -264,6 +279,8 @@
           "directions": "https://www.google.com/maps/search/?api=1&query=Philip+Hulitar+Sculpture+Garden+100+Four+Arts+Plaza+Palm+Beach+FL+33480",
           "artworkFilename": "5621",
           "artworkHasName": false,
+          "published": true,
+          "showText": true,
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/a00b267008ce96cd498ee1aa671375166293fa8ad80a9d172ba521743ac3a3df.jpg"
         },
         {
@@ -276,6 +293,8 @@
           "directions": "https://www.google.com/maps/search/?api=1&query=Barton+and+Gray+Mariners+Club+Palm+Beach+FL",
           "artworkFilename": "5608",
           "artworkHasName": false,
+          "published": true,
+          "showText": true,
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/513126cd882554d109a07bba72bd2c633ce473da57828dee60a7db362e679113.jpg"
         }
       ],
