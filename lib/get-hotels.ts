@@ -84,6 +84,6 @@ export async function getHotels(): Promise<Hotel[]> {
     return parsed.hotels as Hotel[];
   } catch (error) {
     console.error('Unable to load shared hotels:', error);
-    return seed.hotels as Hotel[];
+    throw new Error('Live hotel data is temporarily unavailable.');
   }
 }
