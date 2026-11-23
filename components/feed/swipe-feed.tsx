@@ -186,7 +186,7 @@ export function SwipeFeed({ places, hotelName }: Props) {
   }, [])
 
   const showChrome =
-    activeIndex > 0 && activeIndex < lastIndex
+    activeIndex > 0 && activeIndex < lastIndex && places[activeIndex - 1]?.showText !== false
 
   return (
     <div className="relative mx-auto h-dvh w-full overflow-hidden bg-ink sm:max-w-[calc(100dvh*9/16)] sm:shadow-[0_0_80px_rgba(0,0,0,0.6)]">
