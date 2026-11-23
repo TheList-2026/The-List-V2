@@ -420,7 +420,7 @@
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/ae4b2f11e4101d4b6ba01f4b67fac308f58bb892e75e6c73355e3504964e569f.jpg"
         }
       ],
-      "mode": "live",
+      "mode": "demo",
       "published": true,
       "sheetLink": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRZX_BIMiAYSvS6SqH2e4uaAnQKxjUjMHbD6AGiaPqF9E1zkI0DczQWOuvGO0y3epht9VtGg3YAydAt/pub?output=csv"
     }
