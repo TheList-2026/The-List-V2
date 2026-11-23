@@ -5,6 +5,8 @@ export type Listing = {
   id: string;
   name: string;
   description?: string;
+  published?: boolean;
+  showText?: boolean;
   category: string;
   image: string;
   phone: string;
