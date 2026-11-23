@@ -7,6 +7,7 @@ export type Listing = {
   description?: string;
   published?: boolean;
   showText?: boolean;
+  artworkHasName?: boolean;
   category: string;
   image: string;
   phone: string;
