@@ -48,19 +48,6 @@ export function PlaceSlide({
       isActive={isActive}
       label={`${place.name} – ${index} of ${total}`}
     >
-      {/* PAGE NUMBER — TOP RIGHT */}
-      <motion.div
-        {...reveal(isActive, .05)}
-        className="absolute right-6 top-[max(2rem,env(safe-area-inset-top))] z-20"
-      >
-        <span className="font-serif text-sm italic text-champagne [text-shadow:0_2px_12px_rgba(0,0,0,0.8)]">
-          {String(index).padStart(2, '0')}
-          <span className="text-ivory/70">
-            {` / ${String(total).padStart(2, '0')}`}
-          </span>
-        </span>
-      </motion.div>
-
       {/* BUSINESS DETAILS */}
       <div className="mt-auto px-6 pb-[max(1.75rem,env(safe-area-inset-bottom))]">
         {place.showText !== false && <motion.h2
