@@ -216,7 +216,7 @@
           "artworkFilename": "5622",
           "artworkHasName": false,
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/e076d6cf2259f2da9ab36486d7d49160a57293a06682afe7668c7e83d7b7cc85.jpg",
-          "showText": false
+          "showText": true
         },
         {
           "id": "1795058939884-2f39gbqhokk",
