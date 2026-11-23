@@ -413,7 +413,7 @@
           "artworkFilename": "5710",
           "artworkHasName": false,
           "published": true,
-          "showText": false,
+          "showText": true,
           "image": "https://raw.githubusercontent.com/TheList-2026/The-List-V2/hotel-artwork-storage/public/hotel-artwork/ed539693faa111eec8876feb0db65aa6bb80473fb8fdf5954e90379dd3bd1026.jpg"
         },
         {
