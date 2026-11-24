@@ -57,12 +57,6 @@ export function PlaceSlide({
           {place.name}
         </motion.h2>}
 
-        {place.showText !== false && <motion.p
-          {...reveal(isActive, .25)}
-          className="mt-4 max-w-[30ch] text-pretty text-sm font-light leading-relaxed text-ivory/80"
-        >
-          {place.description}
-        </motion.p>}
 
         {/* EXISTING ACTION BUTTONS — UNCHANGED */}
         <div className="mt-7">
