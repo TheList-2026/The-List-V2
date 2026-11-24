@@ -3,6 +3,7 @@
 
 import { motion } from 'framer-motion'
 import { ArrowUp } from 'lucide-react'
+import { intro } from '@/lib/places'
 
 const ease = [.22, 1, .36, 1] as const
 
@@ -88,8 +89,11 @@ export function OutroSlide({
             : { opacity: 0, y: 16 }
         }
         transition={{ duration: .9, delay: 1.1, ease }}
-        className="flex justify-center px-6 pb-[max(2.5rem,env(safe-area-inset-bottom))]"
+        className="flex shrink-0 flex-col items-center gap-6 px-6 pb-[max(2.5rem,env(safe-area-inset-bottom))]"
       >
+        <p className="whitespace-nowrap pl-[0.3em] text-center font-serif text-[clamp(1.75rem,7vw,3.25rem)] font-light leading-none tracking-[0.3em] text-ivory">
+          {intro.title}
+        </p>
         <motion.button
           type="button"
           onClick={onBackToTop}
