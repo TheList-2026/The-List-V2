@@ -59,7 +59,7 @@ export function PlaceSlide({
 
 
         {/* EXISTING ACTION BUTTONS — UNCHANGED */}
-        <div className="mt-7">
+        <div className="mt-4">
           <ActionBar place={place} isActive={isActive} />
         </div>
       </div>
