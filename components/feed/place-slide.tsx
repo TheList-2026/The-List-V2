@@ -52,7 +52,7 @@ export function PlaceSlide({
       <div className="mt-auto px-6 pb-[max(1.75rem,env(safe-area-inset-bottom))]">
         {place.showText !== false && <motion.h2
           {...reveal(isActive, .15)}
-          className="text-balance font-serif text-5xl font-light leading-[0.95] tracking-tight text-ivory"
+          className="text-balance font-serif text-5xl font-medium leading-[1.05] tracking-[0.035em] text-ivory"
         >
           {place.name}
         </motion.h2>}
