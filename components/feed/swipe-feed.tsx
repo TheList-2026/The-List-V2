@@ -27,6 +27,8 @@ export function SwipeFeed({ places, hotelName }: Props) {
 
   const [activeIndex, setActiveIndex] = useState(0)
   const [isRewinding, setIsRewinding] = useState(false)
+  const [darkBrand, setDarkBrand] = useState(false)
+  const brandRef = useRef<HTMLButtonElement>(null)
 
   const lastIndex = places.length + 1
 
@@ -188,6 +190,74 @@ export function SwipeFeed({ places, hotelName }: Props) {
   const showChrome =
     activeIndex > 0 && activeIndex < lastIndex && places[activeIndex - 1]?.showText !== false
 
+  useEffect(() => {
+    setDarkBrand(false)
+    if (!showChrome) return
+    const section = containerRef.current?.children[activeIndex]
+    const artwork = section?.querySelector('img')
+    if (!section || !artwork) return
+    let cancelled = false
+    let frame = 0
+    let source: HTMLImageElement | null = null
+
+    const sample = () => {
+      if (cancelled || !source?.naturalWidth || !brandRef.current) return
+      const imageRect = artwork.getBoundingClientRect()
+      const logoRect = brandRef.current.getBoundingClientRect()
+      const sectionRect = section.getBoundingClientRect()
+      const scale = Math.max(imageRect.width / source.naturalWidth, imageRect.height / source.naturalHeight)
+      if (!scale) return
+      const left = imageRect.left + (imageRect.width - source.naturalWidth * scale) / 2
+      const top = imageRect.top + (imageRect.height - source.naturalHeight * scale) / 2
+      const canvas = document.createElement('canvas')
+      canvas.width = 32
+      canvas.height = 8
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })
+      if (!ctx) return
+      try {
+        ctx.drawImage(source, (logoRect.left - left) / scale, (logoRect.top - top) / scale, logoRect.width / scale, logoRect.height / scale, 0, 0, 32, 8)
+        const pixels = ctx.getImageData(0, 0, 32, 8).data
+        const y = Math.max(0, Math.min(1, (logoRect.top + logoRect.height / 2 - sectionRect.top) / sectionRect.height))
+        // Account for the existing dark gradient over the artwork.
+        const shade = y < .5 ? .60 - 1.1 * y : .05 + 1.7 * (y - .5)
+        const linear = (v: number) => v <= .04045 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4)
+        let luminance = 0
+        for (let i = 0; i < pixels.length; i += 4) {
+          luminance += .2126 * linear((pixels[i] * (1 - shade) + 11 * shade) / 255)
+            + .7152 * linear((pixels[i + 1] * (1 - shade) + 10 * shade) / 255)
+            + .0722 * linear((pixels[i + 2] * (1 - shade) + 9 * shade) / 255)
+        }
+        setDarkBrand(luminance / (pixels.length / 4) > .179)
+      } catch {
+        setDarkBrand(false)
+      }
+    }
+    const schedule = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(sample)
+    }
+    const load = () => {
+      if (cancelled || !artwork.currentSrc) return
+      const img = new window.Image()
+      img.crossOrigin = 'anonymous'
+      img.onload = () => { if (!cancelled) { source = img; schedule() } }
+      img.onerror = () => { if (!cancelled) setDarkBrand(false) }
+      img.src = artwork.currentSrc
+    }
+    artwork.addEventListener('load', load)
+    window.addEventListener('resize', schedule)
+    containerRef.current?.addEventListener('scroll', schedule, { passive: true })
+    const container = containerRef.current
+    if (artwork.complete) load()
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(frame)
+      artwork.removeEventListener('load', load)
+      window.removeEventListener('resize', schedule)
+      container?.removeEventListener('scroll', schedule)
+    }
+  }, [activeIndex, showChrome, places])
+
   return (
     <div className="relative mx-auto h-dvh w-full overflow-hidden bg-ink sm:max-w-[calc(100dvh*9/16)] sm:shadow-[0_0_80px_rgba(0,0,0,0.6)]">
       <div
@@ -222,6 +292,7 @@ export function SwipeFeed({ places, hotelName }: Props) {
           <>
             <motion.button
               key="brand"
+              ref={brandRef}
               type="button"
               onClick={backToTop}
               aria-label="THE LIST – back to top"
@@ -232,25 +303,12 @@ export function SwipeFeed({ places, hotelName }: Props) {
                 duration: .6,
                 ease: [.22, 1, .36, 1],
               }}
-              className={`${BRAND_POSITION} z-20 text-white mix-blend-difference`}
+              className={`${BRAND_POSITION} z-20 ${darkBrand ? "text-black" : "text-white"}`}
+              style={{ textShadow: darkBrand ? "0 1px 3px rgba(255,255,255,.65)" : "0 1px 3px rgba(0,0,0,.85)" }}
             >
               THE LIST
             </motion.button>
 
-            <motion.span
-              key="brand-mono"
-              aria-hidden="true"
-              initial={{ opacity: 0, y: -12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{
-                duration: .6,
-                ease: [.22, 1, .36, 1],
-              }}
-              className={`${BRAND_POSITION} pointer-events-none z-20 text-white mix-blend-saturation`}
-            >
-              THE LIST
-            </motion.span>
           </>
         )}
       </AnimatePresence>
