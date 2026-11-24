@@ -33,9 +33,9 @@ export function OutroSlide({
             : { opacity: 0, y: -12 }
         }
         transition={{ duration: 1, delay: .2, ease }}
-        className="px-6 pt-[max(5rem,env(safe-area-inset-top))] text-center"
+        className="px-6 pt-[max(3rem,calc(env(safe-area-inset-top)+1rem))] text-center"
       >
-        <p className="whitespace-nowrap pl-[0.3em] mb-7 text-center font-serif text-[clamp(1.75rem,7vw,3.25rem)] font-light leading-none tracking-[0.3em] text-ivory">
+        <p className="whitespace-nowrap pl-[0.3em] mb-7 text-center font-serif text-[clamp(2rem,9vw,3.25rem)] font-light leading-none tracking-[0.3em] text-ivory">
           {intro.title}
         </p>
         <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-champagne">
